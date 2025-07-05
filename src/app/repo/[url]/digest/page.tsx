@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useState, useEffect, useCallback } from "react";
+import { useParams } from "next/navigation";
 import { usePathname } from "next/navigation";
 
 interface DigestMetadata {
@@ -25,7 +25,6 @@ interface DigestResponse {
 
 export default function DigestPage() {
   const params = useParams();
-  const router = useRouter();
   const pathname = usePathname();
   const [digest, setDigest] = useState<string>("");
   const [metadata, setMetadata] = useState<DigestMetadata | null>(null);
@@ -35,11 +34,7 @@ export default function DigestPage() {
 
   const backToWiki = pathname.replace("/digest", "") as string;
 
-  useEffect(() => {
-    generateDigest();
-  }, []);
-
-  const generateDigest = async () => {
+  const generateDigest = useCallback(async () => {
     try {
       setLoading(true);
       const githubUrl = decodeURIComponent(params.url as string);
@@ -66,7 +61,11 @@ export default function DigestPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [params.url]);
+
+  useEffect(() => {
+    generateDigest();
+  }, [generateDigest]);
 
   const copyToClipboard = async () => {
     try {
