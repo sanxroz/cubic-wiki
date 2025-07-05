@@ -8,7 +8,7 @@ export default function Home() {
         <div className="space-y-4">
           <h1 className="text-4xl font-bold text-gray-100">Cubic Wiki</h1>
           <p className="text-lg text-gray-300 max-w-lg mx-auto">
-            AI-powered repository documentation generator
+            AI-powered repository wiki generator
           </p>
         </div>
 
