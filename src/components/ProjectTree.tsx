@@ -33,11 +33,6 @@ export default function ProjectTree({
     }
   );
 
-  const handleKeyDown = useCallback(
-    (_event: React.KeyboardEvent, _nodePath: string, _level: number) => {},
-    []
-  );
-
   return (
     <div className="bg-gray-800 border border-gray-600 rounded-lg p-4">
       <TreeControls
@@ -71,7 +66,6 @@ export default function ProjectTree({
                 defaultBranch={defaultBranch}
                 isExpanded={isExpanded}
                 onToggle={toggleNode}
-                onKeyDown={handleKeyDown}
               />
             ))}
           </div>
