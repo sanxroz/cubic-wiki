@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
       const parsed = parseGitHubUrl(githubUrl);
       owner = parsed.owner;
       repo = parsed.repo;
-    } catch (error) {
+    } catch {
       return NextResponse.json(
         { success: false, error: "Invalid GitHub URL format" },
         { status: 400 }
