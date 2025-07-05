@@ -99,10 +99,6 @@ export async function processRepositoryWithAI(
   const prompt = createAnalysisPrompt(repository, files, subsystemAnalysis);
 
   try {
-    if (DEVELOPMENT) {
-      console.log("Analysis prompt:", prompt);
-    }
-
     const completion = await openai.chat.completions.create({
       model: "gpt-4.1-mini",
       messages: [
