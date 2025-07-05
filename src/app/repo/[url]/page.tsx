@@ -55,7 +55,7 @@ export async function generateMetadata({ params }: PageProps) {
   } catch (error) {
     return {
       title: "Cubic Wiki",
-      description: "AI-powered repository documentation generator",
+      description: "AI-powered repository wiki generator",
     };
   }
 }
