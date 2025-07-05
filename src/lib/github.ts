@@ -57,15 +57,13 @@ export async function fetchRepositoryContent(
     });
 
     // Filter important files
-    const importantFiles = treeResponse.data.tree
-      .filter(
-        (item) =>
-          item.type === "blob" &&
-          item.path &&
-          isImportantFile(item.path) &&
-          (item.size || 0) < 1000000 // Skip files > 1MB
-      )
-      .slice(0, 50); // Limit to first 50 files to avoid rate limits
+    const importantFiles = treeResponse.data.tree.filter(
+      (item) =>
+        item.type === "blob" &&
+        item.path &&
+        isImportantFile(item.path) &&
+        (item.size || 0) < 10000000 // Skip files > 10MB
+    );
 
     // Fetch file contents in parallel
     const fileContents = await Promise.all(
@@ -124,16 +122,6 @@ function isImportantFile(path: string): boolean {
     ".env.example",
   ];
 
-  // Important directories
-  const importantDirs = [
-    "src/",
-    "lib/",
-    "app/",
-    "components/",
-    "pages/",
-    "api/",
-  ];
-
   // File extensions to include
   const allowedExtensions = [
     ".js",
@@ -157,11 +145,6 @@ function isImportantFile(path: string): boolean {
     return true;
   }
 
-  // Check if it's in an important directory
-  if (importantDirs.some((dir) => path.startsWith(dir))) {
-    return allowedExtensions.includes(fileExtension);
-  }
-
   // Skip certain directories
   const skipDirs = [
     "node_modules/",
@@ -178,7 +161,7 @@ function isImportantFile(path: string): boolean {
 
   // Include files with allowed extensions in root or shallow directories
   const depth = path.split("/").length;
-  return depth <= 3 && allowedExtensions.includes(fileExtension);
+  return depth <= 5 && allowedExtensions.includes(fileExtension);
 }
 
 function getFileType(path: string): string {
