@@ -34,8 +34,6 @@ export function analyzeSubsystems(
   files: RepositoryFile[]
 ): SubsystemAnalysis {
   const filePaths = files.map((f) => f.path);
-  const subsystems: SubsystemInfo[] = [];
-  const patterns: ArchitecturalPattern[] = [];
 
   // Detect subsystems based on file patterns
   const detectedSubsystems = [
