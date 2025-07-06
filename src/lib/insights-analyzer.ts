@@ -437,7 +437,7 @@ function analyzeFileImports(
     const matches = file.content.matchAll(pattern);
 
     for (const match of matches) {
-      let importPath = match[1];
+      const importPath = match[1];
 
       if (!importPath) continue;
 
