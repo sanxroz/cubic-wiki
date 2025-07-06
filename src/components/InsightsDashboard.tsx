@@ -2,7 +2,6 @@ interface InsightsDashboardProps {
   insights: {
     dependencies: Array<{
       name: string;
-      type: "internal" | "external";
       count: number;
     }>;
     testCoverage: {
@@ -25,10 +24,6 @@ export default function InsightsDashboard({
   insights,
 }: InsightsDashboardProps) {
   const { dependencies, testCoverage } = insights;
-
-  // Separate external and internal dependencies
-  const externalDeps = dependencies.filter((dep) => dep.type === "external");
-  const internalDeps = dependencies.filter((dep) => dep.type === "internal");
 
   return (
     <div className="space-y-6">
@@ -214,95 +209,46 @@ export default function InsightsDashboard({
       </div>
 
       {/* Dependencies */}
-      <div className="gap-6">
-        {/* External Dependencies */}
-        {externalDeps.length > 0 && (
-          <div className="bg-gray-800 rounded-lg border border-gray-600 p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-8 h-8 bg-blue-900 rounded-lg flex items-center justify-center">
-                <svg
-                  className="w-4 h-4 text-blue-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-                  />
-                </svg>
-              </div>
-              <h3 className="text-lg font-bold text-gray-100">
-                External Dependencies
-              </h3>
+      {dependencies.length > 0 && (
+        <div className="bg-gray-800 rounded-lg border border-gray-600 p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-8 h-8 bg-blue-900 rounded-lg flex items-center justify-center">
+              <svg
+                className="w-4 h-4 text-blue-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                />
+              </svg>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {externalDeps.slice(0, 12).map((dep, index) => (
-                <div
-                  key={index}
-                  className="flex items-center gap-3 px-3 py-2 bg-gray-700 rounded-lg border border-gray-600"
-                >
-                  <div className="w-2 h-2 bg-blue-400 rounded-full flex-shrink-0"></div>
-                  <span className="text-sm font-mono text-gray-300 flex-1">
-                    {dep.name}
-                  </span>
-                </div>
-              ))}
-              {externalDeps.length > 12 && (
-                <div className="text-xs text-gray-500 text-center pt-2">
-                  +{externalDeps.length - 12} more external dependencies
-                </div>
-              )}
-            </div>
+            <h3 className="text-lg font-bold text-gray-100">Dependencies</h3>
           </div>
-        )}
-
-        {/* Internal Dependencies */}
-        {internalDeps.length > 0 && (
-          <div className="bg-gray-800 rounded-lg border border-gray-600 p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-8 h-8 bg-purple-900 rounded-lg flex items-center justify-center">
-                <svg
-                  className="w-4 h-4 text-purple-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 16l2.879-2.879m0 0a3 3 0 104.243-4.242 3 3 0 00-4.243 4.242zM21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {dependencies.slice(0, 12).map((dep, index) => (
+              <div
+                key={index}
+                className="flex items-center gap-3 px-3 py-2 bg-gray-700 rounded-lg border border-gray-600"
+              >
+                <div className="w-2 h-2 bg-blue-400 rounded-full flex-shrink-0"></div>
+                <span className="text-sm font-mono text-gray-300 flex-1">
+                  {dep.name}
+                </span>
               </div>
-              <h3 className="text-lg font-bold text-gray-100">
-                Internal Modules
-              </h3>
-            </div>
-            <div className="space-y-2">
-              {internalDeps.slice(0, 12).map((dep, index) => (
-                <div
-                  key={index}
-                  className="flex items-center gap-3 px-3 py-2 bg-gray-700 rounded-lg border border-gray-600"
-                >
-                  <div className="w-2 h-2 bg-purple-400 rounded-full flex-shrink-0"></div>
-                  <span className="text-sm font-mono text-gray-300 flex-1">
-                    {dep.name}
-                  </span>
-                </div>
-              ))}
-              {internalDeps.length > 12 && (
-                <div className="text-xs text-gray-500 text-center pt-2">
-                  +{internalDeps.length - 12} more internal modules
-                </div>
-              )}
-            </div>
+            ))}
+            {dependencies.length > 12 && (
+              <div className="text-xs text-gray-500 text-center pt-2">
+                +{dependencies.length - 12} more dependencies
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
