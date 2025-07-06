@@ -3,15 +3,18 @@ import WikiDisplay from "@/components/WikiDisplay";
 import { getCachedAnalysis } from "@/lib/cache";
 
 interface PageProps {
-  params: Promise<{ url: string }>;
+  params: Promise<{ owner: string; repo: string }>;
 }
 
 export default async function WikiPage({ params }: PageProps) {
-  const { url } = await params;
+  const { owner, repo } = await params;
+
+  // Construct cache key from owner/repo
+  const cacheKey = `${owner}/${repo}`;
 
   try {
     // Get the wiki data from cache
-    const wikiData = await getCachedAnalysis(url);
+    const wikiData = await getCachedAnalysis(cacheKey);
 
     if (!wikiData) {
       notFound();
@@ -25,10 +28,13 @@ export default async function WikiPage({ params }: PageProps) {
 }
 
 export async function generateMetadata({ params }: PageProps) {
-  const { url } = await params;
+  const { owner, repo } = await params;
+
+  // Construct cache key from owner/repo
+  const cacheKey = `${owner}/${repo}`;
 
   try {
-    const wikiData = await getCachedAnalysis(url);
+    const wikiData = await getCachedAnalysis(cacheKey);
 
     if (!wikiData) {
       return {

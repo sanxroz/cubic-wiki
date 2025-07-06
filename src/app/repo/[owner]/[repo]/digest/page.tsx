@@ -37,7 +37,10 @@ export default function DigestPage() {
   const generateDigest = useCallback(async () => {
     try {
       setLoading(true);
-      const githubUrl = decodeURIComponent(params.url as string);
+      // Reconstruct GitHub URL from owner/repo
+      const owner = params.owner as string;
+      const repo = params.repo as string;
+      const githubUrl = `https://github.com/${owner}/${repo}`;
 
       const response = await fetch("/api/codebase-digest", {
         method: "POST",
@@ -61,7 +64,7 @@ export default function DigestPage() {
     } finally {
       setLoading(false);
     }
-  }, [params.url]);
+  }, [params.owner, params.repo]);
 
   useEffect(() => {
     generateDigest();
