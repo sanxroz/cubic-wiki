@@ -13,7 +13,7 @@ export default function Home() {
         </div>
 
         {/* Main Input */}
-        <div className="bg-gray-800 rounded-lg p-8 border border-gray-600">
+        <div className="bg-gray-800  p-8 border border-gray-600">
           <GitHubInput />
         </div>
       </div>

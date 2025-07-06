@@ -19,7 +19,7 @@ export const TreeControls: React.FC<TreeControlsProps> = React.memo(
         <div className="flex items-center gap-2">
           <button
             onClick={onExpandAll}
-            className="text-xs text-gray-300 hover:text-gray-100 hover:bg-gray-700/50 px-2 py-1 rounded border border-gray-600 hover:border-gray-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400/60 focus:ring-offset-1 focus:ring-offset-gray-800"
+            className="text-xs text-gray-300 hover:text-gray-100 hover:bg-gray-700/50 px-2 py-1  border border-gray-600 hover:border-gray-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400/60 focus:ring-offset-1 focus:ring-offset-gray-800"
             aria-label="Expand all directories"
           >
             Expand All
@@ -27,7 +27,7 @@ export const TreeControls: React.FC<TreeControlsProps> = React.memo(
 
           <button
             onClick={onCollapseAll}
-            className="text-xs text-gray-300 hover:text-gray-100 hover:bg-gray-700/50 px-2 py-1 rounded border border-gray-600 hover:border-gray-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400/60 focus:ring-offset-1 focus:ring-offset-gray-800"
+            className="text-xs text-gray-300 hover:text-gray-100 hover:bg-gray-700/50 px-2 py-1  border border-gray-600 hover:border-gray-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400/60 focus:ring-offset-1 focus:ring-offset-gray-800"
             aria-label="Collapse all directories"
           >
             Collapse All
@@ -35,7 +35,7 @@ export const TreeControls: React.FC<TreeControlsProps> = React.memo(
 
           <button
             onClick={onToggleStats}
-            className="text-sm text-gray-300 hover:text-gray-100 hover:bg-gray-700/50 px-2 py-1 rounded border border-gray-600 hover:border-gray-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400/60 focus:ring-offset-1 focus:ring-offset-gray-800"
+            className="text-sm text-gray-300 hover:text-gray-100 hover:bg-gray-700/50 px-2 py-1  border border-gray-600 hover:border-gray-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400/60 focus:ring-offset-1 focus:ring-offset-gray-800"
             aria-label={showStats ? "Hide statistics" : "Show statistics"}
           >
             {showStats ? "Hide Stats" : "Show Stats"}

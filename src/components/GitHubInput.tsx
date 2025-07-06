@@ -72,14 +72,14 @@ export default function GitHubInput({ onAnalysisStart }: GitHubInputProps) {
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="https://github.com/username/repository"
-            className="w-full px-4 py-3 border border-gray-600 bg-gray-800 text-white rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition-colors placeholder-gray-400"
+            className="w-full px-4 py-3 border border-gray-600 bg-gray-800 text-white  focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition-colors placeholder-gray-400"
             disabled={isLoading}
             required
           />
         </div>
 
         {error && (
-          <div className="bg-red-900 border border-red-700 text-red-200 text-sm p-3 rounded-lg">
+          <div className="bg-red-900 border border-red-700 text-red-200 text-sm p-3 ">
             <div className="flex items-center gap-2">
               <svg
                 className="w-4 h-4 flex-shrink-0"
@@ -102,7 +102,7 @@ export default function GitHubInput({ onAnalysisStart }: GitHubInputProps) {
         <button
           type="submit"
           disabled={isLoading || !isValidGitHubUrl(url)}
-          className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+          className="w-full bg-blue-600 text-white py-3 px-6  font-medium hover:bg-blue-700 focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
         >
           {isLoading ? (
             <>

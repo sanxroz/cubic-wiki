@@ -21,7 +21,7 @@ export default function WikiDisplay({ wikiData }: WikiDisplayProps) {
       <header className="bg-gray-800 border-b border-gray-700">
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-10 h-10 bg-blue-900 rounded-lg flex items-center justify-center">
+            <div className="w-10 h-10 bg-blue-900  flex items-center justify-center">
               <svg
                 className="w-5 h-5 text-blue-400"
                 fill="none"
@@ -46,8 +46,8 @@ export default function WikiDisplay({ wikiData }: WikiDisplayProps) {
             </p>
           )}
           <div className="flex items-center gap-4 text-sm">
-            <span className="flex items-center gap-2 px-3 py-1 bg-gray-700 rounded-full border border-gray-600">
-              <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
+            <span className="flex items-center gap-2 px-3 py-1 bg-gray-700 border border-gray-600">
+              <span className="w-2 h-2 bg-blue-400 -full"></span>
               <span className="text-gray-300">
                 {repository.language || "Multiple languages"}
               </span>
@@ -56,7 +56,7 @@ export default function WikiDisplay({ wikiData }: WikiDisplayProps) {
               href={repository.html_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white  transition-colors"
             >
               <svg
                 className="w-4 h-4"
@@ -75,7 +75,7 @@ export default function WikiDisplay({ wikiData }: WikiDisplayProps) {
             </a>
             <a
               href={`${pathname}/digest`}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white  transition-colors"
             >
               <svg
                 className="w-4 h-4"
@@ -101,24 +101,24 @@ export default function WikiDisplay({ wikiData }: WikiDisplayProps) {
           {/* Sidebar */}
           <div className="lg:col-span-1">
             <nav className="sticky top-8">
-              <div className="bg-gray-800 rounded-lg border border-gray-600 p-6">
+              <div className="bg-gray-800  border border-gray-600 p-6">
                 <h2 className="font-semibold text-gray-100 mb-4">Contents</h2>
                 <ul className="space-y-2 text-sm">
                   <li>
                     <a
                       href="#overview"
-                      className="flex items-center gap-2 text-gray-300 hover:text-blue-400 py-2 px-3 rounded-lg hover:bg-gray-700 transition-colors"
+                      className="flex items-center gap-2 text-gray-300 hover:text-blue-400 py-2 px-3  hover:bg-gray-700 transition-colors"
                     >
-                      <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                      <div className="w-2 h-2 bg-blue-400 -full"></div>
                       Overview
                     </a>
                   </li>
                   <li>
                     <a
                       href="#architecture"
-                      className="flex items-center gap-2 text-gray-300 hover:text-blue-400 py-2 px-3 rounded-lg hover:bg-gray-700 transition-colors"
+                      className="flex items-center gap-2 text-gray-300 hover:text-blue-400 py-2 px-3  hover:bg-gray-700 transition-colors"
                     >
-                      <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                      <div className="w-2 h-2 bg-green-400 -full"></div>
                       Architecture
                     </a>
                   </li>
@@ -126,9 +126,9 @@ export default function WikiDisplay({ wikiData }: WikiDisplayProps) {
                     <li>
                       <a
                         href="#project-structure"
-                        className="flex items-center gap-2 text-gray-300 hover:text-blue-400 py-2 px-3 rounded-lg hover:bg-gray-700 transition-colors"
+                        className="flex items-center gap-2 text-gray-300 hover:text-blue-400 py-2 px-3  hover:bg-gray-700 transition-colors"
                       >
-                        <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+                        <div className="w-2 h-2 bg-purple-400 -full"></div>
                         Project Structure
                       </a>
                     </li>
@@ -137,9 +137,9 @@ export default function WikiDisplay({ wikiData }: WikiDisplayProps) {
                     <li>
                       <a
                         href="#insights"
-                        className="flex items-center gap-2 text-gray-300 hover:text-blue-400 py-2 px-3 rounded-lg hover:bg-gray-700 transition-colors"
+                        className="flex items-center gap-2 text-gray-300 hover:text-blue-400 py-2 px-3  hover:bg-gray-700 transition-colors"
                       >
-                        <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
+                        <div className="w-2 h-2 bg-orange-400 -full"></div>
                         Insights
                       </a>
                     </li>
@@ -148,9 +148,9 @@ export default function WikiDisplay({ wikiData }: WikiDisplayProps) {
                     <li key={index}>
                       <a
                         href={`#section-${index}`}
-                        className="flex items-center gap-2 text-gray-300 hover:text-blue-400 py-2 px-3 rounded-lg hover:bg-gray-700 transition-colors"
+                        className="flex items-center gap-2 text-gray-300 hover:text-blue-400 py-2 px-3  hover:bg-gray-700 transition-colors"
                       >
-                        <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                        <div className="w-2 h-2 bg-gray-400 -full"></div>
                         {section.title}
                       </a>
                     </li>
@@ -166,10 +166,10 @@ export default function WikiDisplay({ wikiData }: WikiDisplayProps) {
               {/* Overview Section */}
               <section
                 id="overview"
-                className="bg-gray-800 rounded-lg border border-gray-600 p-6"
+                className="bg-gray-800  border border-gray-600 p-6"
               >
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-8 h-8 bg-blue-900 rounded-lg flex items-center justify-center">
+                  <div className="w-8 h-8 bg-blue-900  flex items-center justify-center">
                     <svg
                       className="w-4 h-4 text-blue-400"
                       fill="none"
@@ -202,10 +202,10 @@ export default function WikiDisplay({ wikiData }: WikiDisplayProps) {
               {/* Architecture Section */}
               <section
                 id="architecture"
-                className="bg-gray-800 rounded-lg border border-gray-600 p-6"
+                className="bg-gray-800  border border-gray-600 p-6"
               >
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-8 h-8 bg-green-900 rounded-lg flex items-center justify-center">
+                  <div className="w-8 h-8 bg-green-900  flex items-center justify-center">
                     <svg
                       className="w-4 h-4 text-green-400"
                       fill="none"
@@ -241,7 +241,7 @@ export default function WikiDisplay({ wikiData }: WikiDisplayProps) {
 
                     {/* Architecture Style */}
                     <div className="flex items-center gap-3">
-                      <div className="w-6 h-6 bg-green-700 rounded-lg flex items-center justify-center">
+                      <div className="w-6 h-6 bg-green-700  flex items-center justify-center">
                         <svg
                           className="w-3 h-3 text-green-300"
                           fill="none"
@@ -269,7 +269,7 @@ export default function WikiDisplay({ wikiData }: WikiDisplayProps) {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {/* Design Patterns */}
                       {wiki.architecture.patterns.length > 0 && (
-                        <div className="bg-gray-700 rounded-lg p-4 border border-gray-600">
+                        <div className="bg-gray-700  p-4 border border-gray-600">
                           <h4 className="text-lg font-semibold text-gray-100 mb-3 flex items-center gap-2">
                             <svg
                               className="w-4 h-4 text-blue-400"
@@ -291,7 +291,7 @@ export default function WikiDisplay({ wikiData }: WikiDisplayProps) {
                               (pattern, index) => (
                                 <span
                                   key={index}
-                                  className="px-3 py-1 bg-blue-900 text-blue-200 text-sm rounded-full border border-blue-700"
+                                  className="px-3 py-1 bg-blue-900 text-blue-200 text-sm border border-blue-700"
                                 >
                                   {pattern}
                                 </span>
@@ -303,7 +303,7 @@ export default function WikiDisplay({ wikiData }: WikiDisplayProps) {
 
                       {/* Technologies */}
                       {wiki.architecture.technologies.length > 0 && (
-                        <div className="bg-gray-700 rounded-lg p-4 border border-gray-600">
+                        <div className="bg-gray-700  p-4 border border-gray-600">
                           <h4 className="text-lg font-semibold text-gray-100 mb-3 flex items-center gap-2">
                             <svg
                               className="w-4 h-4 text-purple-400"
@@ -325,7 +325,7 @@ export default function WikiDisplay({ wikiData }: WikiDisplayProps) {
                               (tech, index) => (
                                 <span
                                   key={index}
-                                  className="px-3 py-1 bg-purple-900 text-purple-200 text-sm rounded-full border border-purple-700"
+                                  className="px-3 py-1 bg-purple-900 text-purple-200 text-sm border border-purple-700"
                                 >
                                   {tech}
                                 </span>
@@ -337,7 +337,7 @@ export default function WikiDisplay({ wikiData }: WikiDisplayProps) {
                     </div>
 
                     {/* Data Flow */}
-                    <div className="bg-gray-700 rounded-lg p-4 border border-gray-600">
+                    <div className="bg-gray-700  p-4 border border-gray-600">
                       <h4 className="text-lg font-semibold text-gray-100 mb-3 flex items-center gap-2">
                         <svg
                           className="w-4 h-4 text-yellow-400"
@@ -361,7 +361,7 @@ export default function WikiDisplay({ wikiData }: WikiDisplayProps) {
 
                     {/* Key Decisions */}
                     {wiki.architecture.keyDecisions.length > 0 && (
-                      <div className="bg-gray-700 rounded-lg p-4 border border-gray-600">
+                      <div className="bg-gray-700  p-4 border border-gray-600">
                         <h4 className="text-lg font-semibold text-gray-100 mb-3 flex items-center gap-2">
                           <svg
                             className="w-4 h-4 text-orange-400"
@@ -385,7 +385,7 @@ export default function WikiDisplay({ wikiData }: WikiDisplayProps) {
                                 key={index}
                                 className="flex items-start gap-2"
                               >
-                                <div className="w-1.5 h-1.5 bg-orange-400 rounded-full mt-2 flex-shrink-0"></div>
+                                <div className="w-1.5 h-1.5 bg-orange-400 mt-2 flex-shrink-0"></div>
                                 <span className="text-gray-300 text-sm leading-relaxed">
                                   {decision}
                                 </span>
@@ -403,10 +403,10 @@ export default function WikiDisplay({ wikiData }: WikiDisplayProps) {
               {wikiData.projectTree && (
                 <section
                   id="project-structure"
-                  className="bg-gray-800 rounded-lg border border-gray-600 p-6"
+                  className="bg-gray-800  border border-gray-600 p-6"
                 >
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-8 h-8 bg-purple-900 rounded-lg flex items-center justify-center">
+                    <div className="w-8 h-8 bg-purple-900  flex items-center justify-center">
                       <svg
                         className="w-4 h-4 text-purple-400"
                         fill="none"
@@ -439,10 +439,10 @@ export default function WikiDisplay({ wikiData }: WikiDisplayProps) {
               {wikiData.insights && (
                 <section
                   id="insights"
-                  className="bg-gray-800 rounded-lg border border-gray-600 p-6"
+                  className="bg-gray-800  border border-gray-600 p-6"
                 >
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-8 h-8 bg-orange-900 rounded-lg flex items-center justify-center">
+                    <div className="w-8 h-8 bg-orange-900  flex items-center justify-center">
                       <svg
                         className="w-4 h-4 text-orange-400"
                         fill="none"
@@ -506,11 +506,11 @@ function WikiSectionComponent({
   return (
     <section
       id={`section-${sectionIndex}`}
-      className="bg-gray-800 rounded-lg border border-gray-600 p-6"
+      className="bg-gray-800  border border-gray-600 p-6"
     >
       <div className="flex items-center gap-3 mb-4">
         <div
-          className={`w-8 h-8 ${colorClass} rounded-lg flex items-center justify-center`}
+          className={`w-8 h-8 ${colorClass}  flex items-center justify-center`}
         >
           <svg
             className="w-4 h-4"
@@ -536,7 +536,7 @@ function WikiSectionComponent({
 
       {/* Key Takeaways */}
       {section.keyTakeaways && section.keyTakeaways.length > 0 && (
-        <div className="bg-gray-700 rounded-lg p-4 mb-6 border border-gray-600">
+        <div className="bg-gray-700  p-4 mb-6 border border-gray-600">
           <h3 className="text-lg font-semibold text-gray-100 mb-3 flex items-center gap-2">
             <svg
               className="w-4 h-4 text-green-400"
@@ -556,7 +556,7 @@ function WikiSectionComponent({
           <ul className="space-y-2">
             {section.keyTakeaways.map((takeaway, index) => (
               <li key={index} className="flex items-start gap-2">
-                <div className="w-1.5 h-1.5 bg-green-400 rounded-full mt-2 flex-shrink-0"></div>
+                <div className="w-1.5 h-1.5 bg-green-400 mt-2 flex-shrink-0"></div>
                 <span className="text-gray-300 text-sm leading-relaxed">
                   {takeaway}
                 </span>
@@ -595,7 +595,7 @@ function WikiSectionComponent({
             {section.files.map((file, fileIndex) => (
               <div
                 key={fileIndex}
-                className="bg-gray-700 hover:bg-gray-600 px-3 py-2 text-sm font-mono text-gray-300 border border-gray-600 rounded-lg transition-colors"
+                className="bg-gray-700 hover:bg-gray-600 px-3 py-2 text-sm font-mono text-gray-300 border border-gray-600  transition-colors"
               >
                 <div className="flex items-center gap-2">
                   <svg
@@ -655,8 +655,8 @@ interface CitationComponentProps {
 
 function CitationComponent({ citation }: CitationComponentProps) {
   return (
-    <div className="flex items-start gap-3 p-3 bg-blue-900 hover:bg-blue-800 rounded-lg border border-blue-700 transition-colors">
-      <div className="flex-shrink-0 w-2 h-2 bg-blue-400 rounded-full mt-2"></div>
+    <div className="flex items-start gap-3 p-3 bg-blue-900 hover:bg-blue-800  border border-blue-700 transition-colors">
+      <div className="flex-shrink-0 w-2 h-2 bg-blue-400 mt-2"></div>
       <div className="flex-1 min-w-0">
         <p className="text-sm text-gray-300 mb-2">{citation.text}</p>
         <a

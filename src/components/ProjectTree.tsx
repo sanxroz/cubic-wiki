@@ -34,7 +34,7 @@ export default function ProjectTree({
   );
 
   return (
-    <div className="bg-gray-800 border border-gray-600 rounded-lg p-4">
+    <div className="bg-gray-800 border border-gray-600  p-4">
       <TreeControls
         showStats={showStats}
         onToggleStats={() => setShowStats(!showStats)}
@@ -49,7 +49,7 @@ export default function ProjectTree({
       />
 
       <div
-        className="bg-gray-700 rounded border border-gray-600 p-3 overflow-x-auto"
+        className="bg-gray-700  border border-gray-600 p-3 overflow-x-auto"
         role="tree"
         aria-label="Project file tree"
       >

@@ -93,7 +93,7 @@ export default function DigestPage() {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-8 h-8 border-4 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-8 h-8 border-4 border-blue-400 border-t-transparent animate-spin mx-auto mb-4"></div>
           <p className="text-gray-300">Generating codebase digest...</p>
         </div>
       </div>
@@ -104,7 +104,7 @@ export default function DigestPage() {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 bg-red-900 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 bg-red-900 flex items-center justify-center mx-auto mb-4">
             <svg
               className="w-8 h-8 text-red-400"
               fill="none"
@@ -123,7 +123,7 @@ export default function DigestPage() {
           <p className="text-gray-300 mb-4">{error}</p>
           <a
             href={backToWiki}
-            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white  transition-colors"
           >
             Go Back
           </a>
@@ -141,7 +141,7 @@ export default function DigestPage() {
             <div className="flex items-center gap-4">
               <a
                 href={`${backToWiki}`}
-                className="p-2 text-gray-400 hover:text-gray-200 hover:bg-gray-700 rounded-lg transition-colors"
+                className="p-2 text-gray-400 hover:text-gray-200 hover:bg-gray-700  transition-colors"
               >
                 <svg
                   className="w-5 h-5"
@@ -167,7 +167,7 @@ export default function DigestPage() {
             <div className="flex items-center gap-3">
               <button
                 onClick={downloadAsFile}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white  transition-colors"
               >
                 <svg
                   className="w-4 h-4"
@@ -186,7 +186,7 @@ export default function DigestPage() {
               </button>
               <button
                 onClick={copyToClipboard}
-                className={`flex items-center gap-2 px-6 py-2 rounded-lg transition-colors ${
+                className={`flex items-center gap-2 px-6 py-2  transition-colors ${
                   copied
                     ? "bg-green-600 text-white"
                     : "bg-blue-600 hover:bg-blue-700 text-white"
@@ -238,7 +238,7 @@ export default function DigestPage() {
           {/* Insights Sidebar */}
           {metadata && (
             <div className="lg:col-span-1">
-              <div className="bg-gray-800 rounded-lg border border-gray-600 p-6 sticky top-6">
+              <div className="bg-gray-800  border border-gray-600 p-6 sticky top-6">
                 <h2 className="text-lg font-semibold text-gray-100 mb-4">
                   Digest Insights
                 </h2>
@@ -287,7 +287,7 @@ export default function DigestPage() {
 
           {/* Raw Markdown Content */}
           <div className={metadata ? "lg:col-span-2" : "lg:col-span-3"}>
-            <div className="bg-gray-800 rounded-lg border border-gray-600">
+            <div className="bg-gray-800  border border-gray-600">
               <div className="p-4 border-b border-gray-600">
                 <h2 className="text-lg font-semibold text-gray-100">
                   Raw Markdown Digest
@@ -300,7 +300,7 @@ export default function DigestPage() {
                 <textarea
                   value={digest}
                   readOnly
-                  className="w-full h-[600px] bg-gray-900 border border-gray-600 rounded-lg p-4 text-gray-100 font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full h-[600px] bg-gray-900 border border-gray-600  p-4 text-gray-100 font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Generating digest..."
                 />
               </div>

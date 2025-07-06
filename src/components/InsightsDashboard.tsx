@@ -28,9 +28,9 @@ export default function InsightsDashboard({
   return (
     <div className="space-y-6">
       {/* Test Coverage Overview */}
-      <div className="bg-gray-800 rounded-lg border border-gray-600 p-6">
+      <div className="bg-gray-800  border border-gray-600 p-6">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-8 h-8 bg-green-900 rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-green-900  flex items-center justify-center">
             <svg
               className="w-4 h-4 text-green-400"
               fill="none"
@@ -148,7 +148,7 @@ export default function InsightsDashboard({
                 testCoverage.testFiles.slice(0, 3).map((file, index) => (
                   <div
                     key={index}
-                    className="text-xs font-mono text-gray-300 bg-gray-700 px-2 py-1 rounded"
+                    className="text-xs font-mono text-gray-300 bg-gray-700 px-2 py-1 "
                   >
                     {file.split("/").pop()}
                   </div>
@@ -170,7 +170,7 @@ export default function InsightsDashboard({
         {/* Untested Files Section */}
         {testCoverage.untestedFiles &&
           testCoverage.untestedFiles.length > 0 && (
-            <div className="mt-6 bg-red-900/20 border border-red-700 rounded-lg p-4">
+            <div className="mt-6 bg-red-900/20 border border-red-700  p-4">
               <div className="flex items-center gap-2 mb-3">
                 <svg
                   className="w-4 h-4 text-red-400"
@@ -193,7 +193,7 @@ export default function InsightsDashboard({
                 {testCoverage.untestedFiles.slice(0, 10).map((file, index) => (
                   <div
                     key={index}
-                    className="text-xs font-mono text-red-300 bg-red-900/30 px-2 py-1 rounded border border-red-800"
+                    className="text-xs font-mono text-red-300 bg-red-900/30 px-2 py-1  border border-red-800"
                   >
                     {file}
                   </div>
@@ -210,9 +210,9 @@ export default function InsightsDashboard({
 
       {/* Dependencies */}
       {dependencies.length > 0 && (
-        <div className="bg-gray-800 rounded-lg border border-gray-600 p-6">
+        <div className="bg-gray-800  border border-gray-600 p-6">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-8 h-8 bg-blue-900 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-blue-900  flex items-center justify-center">
               <svg
                 className="w-4 h-4 text-blue-400"
                 fill="none"
@@ -233,9 +233,9 @@ export default function InsightsDashboard({
             {dependencies.slice(0, 12).map((dep, index) => (
               <div
                 key={index}
-                className="flex items-center gap-3 px-3 py-2 bg-gray-700 rounded-lg border border-gray-600"
+                className="flex items-center gap-3 px-3 py-2 bg-gray-700  border border-gray-600"
               >
-                <div className="w-2 h-2 bg-blue-400 rounded-full flex-shrink-0"></div>
+                <div className="w-2 h-2 bg-blue-400 flex-shrink-0"></div>
                 <span className="text-sm font-mono text-gray-300 flex-1">
                   {dep.name}
                 </span>

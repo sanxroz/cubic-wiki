@@ -106,7 +106,7 @@ export const TreeNode: React.FC<TreeNodeProps> = React.memo(
 
     return (
       <div className="font-mono text-sm">
-        <div className="flex items-center group hover:bg-gray-700/50 rounded px-1 transition-all duration-200 ease-in-out hover:shadow-sm">
+        <div className="flex items-center group hover:bg-gray-700/50  px-1 transition-all duration-200 ease-in-out hover:shadow-sm">
           <span className="text-gray-400 select-none" aria-hidden="true">
             {prefix + connector}
           </span>
@@ -115,7 +115,7 @@ export const TreeNode: React.FC<TreeNodeProps> = React.memo(
             ref={buttonRef}
             onClick={handleToggle}
             onKeyDown={handleKeyDown}
-            className={`flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-blue-400/60 focus:ring-offset-2 focus:ring-offset-gray-800 rounded-sm transition-all duration-150 ${
+            className={`flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-blue-400/60 focus:ring-offset-2 focus:ring-offset-gray-800 transition-all duration-150 ${
               node.type === "file"
                 ? "cursor-default"
                 : "cursor-pointer hover:bg-gray-600/30"
@@ -156,7 +156,7 @@ export const TreeNode: React.FC<TreeNodeProps> = React.memo(
                 href={fileUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-400 hover:text-blue-300 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-400/60 focus:ring-offset-1 focus:ring-offset-gray-800 rounded-sm transition-colors duration-150"
+                className="text-blue-400 hover:text-blue-300 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-400/60 focus:ring-offset-1 focus:ring-offset-gray-800 transition-colors duration-150"
                 aria-label={`Open ${node.name} in GitHub`}
               >
                 {node.name}
@@ -175,7 +175,7 @@ export const TreeNode: React.FC<TreeNodeProps> = React.memo(
 
             {node.subsystemType && (
               <span
-                className="ml-2 px-1.5 py-0.5 text-xs bg-blue-900 text-blue-200 rounded"
+                className="ml-2 px-1.5 py-0.5 text-xs bg-blue-900 text-blue-200 "
                 aria-label={`Subsystem: ${node.subsystemType}`}
               >
                 {node.subsystemType}
