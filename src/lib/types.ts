@@ -20,7 +20,9 @@ export interface RepositoryFile {
 
 export interface WikiSection {
   title: string;
+  summary: string;
   content: string;
+  keyTakeaways: string[];
   files: string[];
   citations: CitationLink[];
 }
@@ -32,13 +34,22 @@ export interface CitationLink {
   url: string;
 }
 
+export interface ArchitectureInfo {
+  summary: string;
+  style: string;
+  patterns: string[];
+  technologies: string[];
+  dataFlow: string;
+  keyDecisions: string[];
+}
+
 export interface WikiData {
   githubUrl: string;
   generatedAt: string;
   repository: GitHubRepository;
   wiki: {
     overview: string;
-    architecture: string;
+    architecture: string | ArchitectureInfo;
     sections: WikiSection[];
   };
   projectTree?: ProjectTree;
@@ -54,6 +65,13 @@ export interface WikiData {
       testedFiles: number;
       totalFiles: number;
       testFiles: string[];
+      testFramework?: string;
+      untestedFiles: string[];
+      testToSourceMapping: Record<string, string[]>;
+      qualityMetrics: {
+        avgTestFileSize: number;
+        testToSourceRatio: number;
+      };
     };
   };
 }
