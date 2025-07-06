@@ -57,13 +57,15 @@ export async function fetchRepositoryContent(
     });
 
     // Filter important files
-    const importantFiles = treeResponse.data.tree.filter(
-      (item) =>
-        item.type === "blob" &&
-        item.path &&
-        isImportantFile(item.path) &&
-        (item.size || 0) < 10000000 // Skip files > 10MB
-    );
+    const importantFiles = treeResponse.data.tree
+      .filter(
+        (item) =>
+          item.type === "blob" &&
+          item.path &&
+          isImportantFile(item.path) &&
+          (item.size || 0) < 10000000 // Skip files > 10MB
+      )
+      .slice(0, 1000);
 
     // Fetch file contents in parallel
     const fileContents = await Promise.all(
