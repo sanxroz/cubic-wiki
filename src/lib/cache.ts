@@ -155,10 +155,10 @@ export async function getRecentAnalyses(): Promise<
     const sql = getDatabase();
 
     const result = await sql`
-      SELECT cache_key, data, created_at 
-      FROM cache 
+      SELECT cache_key, data, created_at
+      FROM cache
       WHERE expires_at > NOW()
-      ORDER BY created_at DESC 
+      ORDER BY created_at DESC
       LIMIT 3
     `;
 
@@ -170,5 +170,29 @@ export async function getRecentAnalyses(): Promise<
   } catch (error) {
     console.error("Failed to get recent analyses:", error);
     return [];
+  }
+}
+
+/**
+ * Delete a cached analysis by cache key
+ * @param cacheKey - The cache key to delete
+ * @returns Promise<boolean> - true if deleted successfully, false otherwise
+ */
+export async function deleteCachedAnalysis(cacheKey: string): Promise<boolean> {
+  try {
+    await initializeCacheTable();
+
+    const sql = getDatabase();
+
+    await sql`
+      DELETE FROM cache
+      WHERE cache_key = ${cacheKey}
+    `;
+
+    // If no error was thrown, consider it successful
+    return true;
+  } catch (error) {
+    console.error("Failed to delete cached analysis:", error);
+    return false;
   }
 }

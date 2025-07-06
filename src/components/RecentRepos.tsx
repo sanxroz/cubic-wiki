@@ -12,6 +12,7 @@ interface RecentRepo {
 export default function RecentRepos() {
   const [recentRepos, setRecentRepos] = useState<RecentRepo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingKeys, setDeletingKeys] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     async function fetchRecentRepos() {
@@ -28,6 +29,34 @@ export default function RecentRepos() {
 
     fetchRecentRepos();
   }, []);
+
+  const handleDelete = async (cacheKey: string) => {
+    setDeletingKeys((prev) => new Set(prev).add(cacheKey));
+
+    try {
+      const response = await fetch(
+        `/api/recent-repos?key=${encodeURIComponent(cacheKey)}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      if (response.ok) {
+        // Remove the deleted repo from the list
+        setRecentRepos((prev) => prev.filter((repo) => repo.key !== cacheKey));
+      } else {
+        console.error("Failed to delete analysis");
+      }
+    } catch (error) {
+      console.error("Failed to delete analysis:", error);
+    } finally {
+      setDeletingKeys((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(cacheKey);
+        return newSet;
+      });
+    }
+  };
 
   if (loading) {
     return (
@@ -59,12 +88,22 @@ export default function RecentRepos() {
                   Analyzed on {repo.createdAt}
                 </p>
               </div>
-              <Link
-                href={`/repo/${repo.key}`}
-                className="text-blue-400 hover:text-blue-300 text-sm font-medium"
-              >
-                View Analysis →
-              </Link>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => handleDelete(repo.key)}
+                  disabled={deletingKeys.has(repo.key)}
+                  className="text-red-400 hover:text-red-300 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Delete analysis"
+                >
+                  {deletingKeys.has(repo.key) ? "Deleting..." : "Delete"}
+                </button>
+                <Link
+                  href={`/repo/${repo.key}`}
+                  className="text-blue-400 hover:text-blue-300 text-sm font-medium"
+                >
+                  View Analysis →
+                </Link>
+              </div>
             </div>
           </div>
         ))}
