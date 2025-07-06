@@ -16,8 +16,6 @@ if (!process.env.OPENAI_API_KEY) {
   );
 }
 
-const DEVELOPMENT = process.env.NODE_ENV === "development";
-
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
