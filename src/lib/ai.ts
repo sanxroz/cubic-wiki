@@ -200,7 +200,7 @@ function createAnalysisPrompt(
     subsystemAnalysis.subsystems.length > 0
       ? `\n**Detected Subsystems:**\n${subsystemAnalysis.subsystems
           .map((s) => `- **${s.name}** (${s.type}): ${s.description}`)
-          .join("\n")}\n\n**Architecture**: ${subsystemAnalysis.architecture}\n`
+          .join("\n")}\n\n**Project Type**: ${subsystemAnalysis.projectType}\n`
       : "";
 
   const dependencyCount = files.filter(
@@ -381,9 +381,9 @@ function createFallbackWikiData(
         repository.description || repository.name
       }`,
       architecture: {
-        summary: `${subsystemAnalysis.architecture}. AI analysis could not be completed, but programmatic analysis detected the architectural structure.`,
-        style: subsystemAnalysis.architecture,
-        patterns: subsystemAnalysis.patterns.map((p) => p.pattern),
+        summary: `${subsystemAnalysis.projectType}. AI analysis could not be completed, but programmatic analysis detected the architectural structure.`,
+        style: "Custom Architecture",
+        patterns: ["File-based detection"],
         technologies: [repository.language || "Unknown"].filter(Boolean),
         dataFlow: "Unable to determine data flow without AI analysis.",
         keyDecisions: [

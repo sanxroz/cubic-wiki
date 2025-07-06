@@ -85,11 +85,7 @@ export interface AnalysisResponse {
   error?: string;
 }
 
-export type {
-  SubsystemInfo,
-  ArchitecturalPattern,
-  SubsystemAnalysis,
-} from "./subsystem-analyzer";
+export type { SubsystemInfo, SubsystemAnalysis } from "./subsystem-analyzer";
 
 // Re-export tree builder types
 export type { TreeNode, ProjectTree } from "./tree-builder";
