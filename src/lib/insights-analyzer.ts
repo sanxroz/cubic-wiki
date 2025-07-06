@@ -11,6 +11,13 @@ export interface TestCoverageInsight {
   testedFiles: number;
   totalFiles: number;
   testFiles: string[];
+  testFramework?: string;
+  untestedFiles: string[];
+  testToSourceMapping: Record<string, string[]>; // Now simplified/empty
+  qualityMetrics: {
+    avgTestFileSize: number; // Simplified to 0
+    testToSourceRatio: number; // Simplified calculation
+  };
 }
 
 export interface InsightsData {
@@ -285,10 +292,10 @@ function parseManifestDependencies(
         // Extract dependencies from Gradle build files
         const dependencyMatches = [
           ...file.content.matchAll(
-            /(?:implementation|api|compile|testImplementation|androidTestImplementation)\s+['"']([^'"]+)['"]/g
+            /(?:implementation|api|compile|testImplementation|androidTestImplementation)\s+['"]([^'"]+)['"]/g
           ),
           ...file.content.matchAll(
-            /(?:implementation|api|compile|testImplementation|androidTestImplementation)\s*\(\s*['"']([^'"]+)['"]/g
+            /(?:implementation|api|compile|testImplementation|androidTestImplementation)\s*\(\s*['"]([^'"]+)['"]/g
           ),
         ];
 
@@ -401,7 +408,7 @@ function parseManifestDependencies(
         const lines = file.content.split("\n");
         lines.forEach((line) => {
           const cleaned = line.trim();
-          const match = cleaned.match(/gem\s+['"']([^'"]+)['"]/);
+          const match = cleaned.match(/gem\s+['"]([^'"]+)['"]/);
           if (match && match[1]) {
             dependencies.push({ name: match[1], type: "external", count: 6 });
           }
@@ -1002,42 +1009,135 @@ function isProjectInternal(packageName: string, filePath: string): boolean {
 }
 
 function analyzeTestCoverage(files: RepositoryFile[]): TestCoverageInsight {
-  // Identify test files
-  const testFiles = files.filter(
-    (file) =>
-      /\.(test|spec)\.(js|jsx|ts|tsx|py|go|java)$/.test(file.path) ||
-      file.path.includes("__tests__") ||
-      file.path.includes("/tests/") ||
-      file.path.includes("/test/")
-  );
+  // Simplified test file detection - focus on common patterns
+  const testFiles = files.filter((file) => {
+    const path = file.path.toLowerCase();
+    const fileName = path.split("/").pop() || "";
 
-  // Identify source files (excluding tests, configs, etc.)
-  const sourceFiles = files.filter((file) => {
-    const isCode = /\.(js|jsx|ts|tsx|py|go|java)$/.test(file.path);
-    const isTest =
-      /\.(test|spec)\.(js|jsx|ts|tsx|py|go|java)$/.test(file.path) ||
-      file.path.includes("__tests__") ||
-      file.path.includes("/tests/") ||
-      file.path.includes("/test/");
-    const isConfig =
-      /\.(config|rc)\.(js|ts|json)$/.test(file.path) ||
-      file.path.includes("node_modules") ||
-      file.path.includes("dist/") ||
-      file.path.includes("build/");
-
-    return isCode && !isTest && !isConfig;
+    return (
+      // Common test file patterns
+      /\.(test|spec)\.(js|jsx|ts|tsx|py|go|java|rs|php|rb)$/.test(path) ||
+      // Directory patterns
+      path.includes("__tests__") ||
+      path.includes("/tests/") ||
+      path.includes("/test/") ||
+      // Python specific patterns
+      /^test.*\.py$/.test(fileName) ||
+      fileName === "conftest.py" ||
+      // Other common patterns
+      path.endsWith("_test.py") ||
+      path.endsWith("_test.go") ||
+      path.endsWith("_spec.rb")
+    );
   });
 
-  // Simple heuristic: estimate coverage based on test file ratio
+  // Identify source files (simplified)
+  const sourceFiles = files.filter((file) => {
+    const path = file.path.toLowerCase();
+
+    // Include common source file extensions
+    const isCode = /\.(js|jsx|ts|tsx|py|go|java|rs|php|rb|c|cpp|cs)$/.test(
+      path
+    );
+
+    // Exclude test files
+    const isTest = testFiles.some((testFile) => testFile.path === file.path);
+
+    // Exclude common non-source directories and files
+    const isExcluded =
+      path.includes("node_modules") ||
+      path.includes("dist/") ||
+      path.includes("build/") ||
+      path.includes(".git/") ||
+      path.includes("coverage/") ||
+      path.endsWith(".d.ts") ||
+      path.includes("generated");
+
+    return isCode && !isTest && !isExcluded;
+  });
+
+  // Simple framework detection
+  const testFramework = detectTestFramework(files);
+
+  // Basic coverage calculation (simplified - no complex mapping)
   const totalFiles = sourceFiles.length;
-  const testedFiles = Math.min(testFiles.length * 3, totalFiles); // Assume each test file covers ~3 source files
-  const percentage =
-    totalFiles > 0 ? Math.round((testedFiles / totalFiles) * 100) : 0;
+  const testFileCount = testFiles.length;
+
+  // Simple heuristic: assume reasonable test coverage if tests exist
+  const estimatedCoverage =
+    totalFiles > 0
+      ? Math.min(Math.round((testFileCount / totalFiles) * 100), 100)
+      : 0;
+
+  // Identify files without corresponding tests (simplified)
+  const untestedFiles = sourceFiles
+    .filter((sourceFile) => {
+      // Simple check: look for a test file that might correspond to this source file
+      const sourceName =
+        sourceFile.path
+          .split("/")
+          .pop()
+          ?.replace(/\.(js|jsx|ts|tsx|py|go|java|rs|php|rb)$/, "") || "";
+      return !testFiles.some((testFile) => {
+        const testName = testFile.path.toLowerCase();
+        return testName.includes(sourceName.toLowerCase());
+      });
+    })
+    .map((file) => file.path)
+    .sort()
+    .slice(0, 20); // Limit to first 20 for UI
 
   return {
-    percentage: Math.min(percentage, 100),
-    testedFiles,
+    percentage: estimatedCoverage,
+    testedFiles:
+      testFileCount > 0 ? Math.max(1, totalFiles - untestedFiles.length) : 0,
     totalFiles,
     testFiles: testFiles.map((f) => f.path),
+    testFramework,
+    untestedFiles,
+    testToSourceMapping: {}, // Simplified - remove complex mapping
+    qualityMetrics: {
+      avgTestFileSize: 0, // Simplified - remove complex metrics
+      testToSourceRatio:
+        testFileCount > 0 && totalFiles > 0
+          ? Number((testFileCount / totalFiles).toFixed(2))
+          : 0,
+    },
   };
+}
+
+function detectTestFramework(files: RepositoryFile[]): string | undefined {
+  // Check package.json for common test frameworks
+  const packageJsonFile = files.find((f) => f.path.endsWith("package.json"));
+  if (packageJsonFile) {
+    try {
+      const pkg = JSON.parse(packageJsonFile.content);
+      const allDeps = {
+        ...pkg.dependencies,
+        ...pkg.devDependencies,
+      };
+
+      // Check for most common frameworks
+      if (allDeps.vitest) return "Vitest";
+      if (allDeps.jest) return "Jest";
+      if (allDeps.mocha) return "Mocha";
+      if (allDeps.cypress) return "Cypress";
+      if (allDeps["@playwright/test"]) return "Playwright";
+    } catch {
+      // Ignore JSON parsing errors
+    }
+  }
+
+  // Simple checks for other languages
+  if (files.some((f) => f.path.endsWith("conftest.py"))) return "pytest";
+  if (files.some((f) => f.path.endsWith("_test.go"))) return "Go testing";
+
+  // Check if we have Python test files (assume pytest)
+  const hasTestFiles = files.some((f) => {
+    const fileName = f.path.split("/").pop() || "";
+    return /^test.*\.py$/.test(fileName);
+  });
+  if (hasTestFiles) return "pytest";
+
+  return undefined;
 }
