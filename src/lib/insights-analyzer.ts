@@ -12,10 +12,10 @@ export interface TestCoverageInsight {
   testFiles: string[];
   testFramework?: string;
   untestedFiles: string[];
-  testToSourceMapping: Record<string, string[]>; // Now simplified/empty
+  testToSourceMapping: Record<string, string[]>;
   qualityMetrics: {
-    avgTestFileSize: number; // Simplified to 0
-    testToSourceRatio: number; // Simplified calculation
+    avgTestFileSize: number;
+    testToSourceRatio: number;
   };
 }
 
@@ -24,35 +24,173 @@ export interface InsightsData {
   testCoverage: TestCoverageInsight;
 }
 
+// Configuration-driven manifest parsers
+const MANIFEST_CONFIGS = {
+  "package.json": {
+    type: "json",
+    sections: [
+      { key: "dependencies", weight: 8 },
+      { key: "devDependencies", weight: 5 },
+      { key: "peerDependencies", weight: 3 },
+      { key: "optionalDependencies", weight: 2 },
+    ],
+  },
+  "composer.json": {
+    type: "json",
+    sections: [
+      { key: "require", weight: 7, exclude: ["php"] },
+      { key: "require-dev", weight: 4 },
+    ],
+  },
+  "cargo.toml": {
+    type: "toml",
+    sections: [
+      { pattern: "[dependencies]", weight: 7 },
+      { pattern: "[dev-dependencies]", weight: 4 },
+    ],
+  },
+  "go.mod": {
+    type: "lines",
+    patterns: [
+      { regex: /require\s+([^\s]+)/, weight: 6 },
+      { regex: /^\s*([^\s]+)\s+v/, weight: 6, multiline: true },
+    ],
+  },
+  "pyproject.toml": {
+    type: "toml",
+    sections: [
+      { pattern: "[tool.poetry.dependencies]", weight: 7, exclude: ["python"] },
+      { pattern: "[project.dependencies]", weight: 7 },
+      { pattern: "[tool.poetry.group.dev.dependencies]", weight: 4 },
+      { pattern: "[tool.poetry.dev-dependencies]", weight: 4 },
+    ],
+  },
+  "pom.xml": {
+    type: "xml",
+    patterns: [
+      {
+        regex:
+          /<groupId>([^<]+)<\/groupId>\s*<artifactId>([^<]+)<\/artifactId>/g,
+        weight: 6,
+        combine: true,
+      },
+    ],
+  },
+  "pubspec.yaml": {
+    type: "yaml",
+    sections: [
+      { pattern: "dependencies:", weight: 7, exclude: ["flutter", "sdk"] },
+      { pattern: "dev_dependencies:", weight: 4 },
+    ],
+  },
+} as const;
+
+// Requirements.txt and similar patterns
+const REQUIREMENTS_PATTERNS = {
+  regex: /requirements.*\.txt$/i,
+  parser: {
+    type: "lines",
+    patterns: [{ regex: /^([a-zA-Z0-9_.-]+)/, weight: 7 }],
+  },
+};
+
+// Gradle patterns
+const GRADLE_PATTERNS = {
+  regex: /build\.gradle(\.kts)?$/i,
+  parser: {
+    type: "lines",
+    patterns: [
+      {
+        regex:
+          /(?:implementation|api|compile|testImplementation|androidTestImplementation)\s+['"]([^'"]+)['"]/g,
+        weight: 6,
+      },
+      {
+        regex:
+          /(?:implementation|api|compile|testImplementation|androidTestImplementation)\s*\(\s*['"]([^'"]+)['"]/g,
+        weight: 6,
+      },
+    ],
+  },
+};
+
+// Language-specific import patterns
+const IMPORT_PATTERNS = {
+  js: [
+    /import\s+(?:[\w*{}.s,]+\s+from\s+)?['"`]([^'"`]+)['"`]/g,
+    /require\s*\(\s*['"`]([^'"`]+)['"`]\s*\)/g,
+    /import\s*\(\s*['"`]([^'"`]+)['"`]\s*\)/g,
+  ],
+  python: [
+    /from\s+([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)*)\s+import/g,
+    /^import\s+([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)*)/gm,
+  ],
+  go: [/import\s+"([^"]+)"/g, /import\s+\(\s*\n([\s\S]*?)\)/g],
+  java: [/import\s+(?:static\s+)?([a-zA-Z_][a-zA-Z0-9_.]*);/g],
+  rust: [
+    /use\s+([a-zA-Z_][a-zA-Z0-9_]*(?:::[a-zA-Z_][a-zA-Z0-9_]*)*)/g,
+    /extern\s+crate\s+([a-zA-Z_][a-zA-Z0-9_]*)/g,
+  ],
+  php: [
+    /use\s+([a-zA-Z_\\][a-zA-Z0-9_\\]*);/g,
+    /require(?:_once)?\s*\(\s*['"`]([^'"`]+)['"`]\s*\)/g,
+  ],
+  ruby: [/require\s+['"`]([^'"`]+)['"`]/g, /gem\s+['"`]([^'"`]+)['"`]/g],
+  dart: [/import\s+['"`]([^'"`]+)['"`]/g, /export\s+['"`]([^'"`]+)['"`]/g],
+  csharp: [/using\s+([a-zA-Z_][a-zA-Z0-9_.]*);/g],
+} as const;
+
+// Standard library patterns (more efficient than arrays)
+const STD_LIB_PATTERNS = {
+  python:
+    /^(os|sys|json|re|math|datetime|collections|itertools|functools|operator|copy|pickle|sqlite3|urllib|http|email|html|xml|csv|configparser|logging|unittest|threading|multiprocessing|subprocess|shutil|tempfile|pathlib|glob|fnmatch|random|hashlib|hmac|secrets|typing|dataclasses|enum|abc|contextlib|weakref)(\\.|$)/,
+  go: /^(fmt|os|io|net|http|time|strings|strconv|sort|math|crypto|encoding|database|context|sync|regexp|path|log|flag|bufio|bytes|errors|reflect|runtime|testing|unsafe|archive|compress|container|debug|go|hash|image|index|mime|plugin|text|unicode)($|\/)/,
+  js: /^(fs|path|os|crypto|http|https|url|querystring|util|events|stream|buffer|child_process|cluster|dgram|dns|net|readline|repl|tls|tty|vm|zlib)$/,
+  java: /^(java\.|javax\.)/,
+  rust: /^(std|core|alloc)::/,
+  csharp: /^(System|Microsoft)\./,
+  php: /^()/, // PHP doesn't have a standard library pattern like others
+  ruby: /^()/, // Ruby doesn't have a standard library pattern like others
+  dart: /^dart:/,
+} as const;
+
+// File extension to language mapping
+const EXT_TO_LANG: Record<string, keyof typeof IMPORT_PATTERNS> = {
+  js: "js",
+  jsx: "js",
+  ts: "js",
+  tsx: "js",
+  py: "python",
+  go: "go",
+  java: "java",
+  kt: "java",
+  scala: "java",
+  rs: "rust",
+  php: "php",
+  rb: "ruby",
+  dart: "dart",
+  cs: "csharp",
+};
+
 export function analyzeInsights(files: RepositoryFile[]): InsightsData {
   const dependencies = analyzeDependencies(files);
   const testCoverage = analyzeTestCoverage(files);
 
-  return {
-    dependencies,
-    testCoverage,
-  };
+  return { dependencies, testCoverage };
 }
 
 function analyzeDependencies(files: RepositoryFile[]): DependencyInsight[] {
-  // Get declared dependencies from manifest files
   const manifestDeps = parseManifestDependencies(files);
-
-  // Get import usage patterns (existing analysis)
   const importDeps = analyzeImportStatements(files);
 
-  // Combine and deduplicate, prioritizing manifest dependencies
+  // Combine and deduplicate
   const combined = new Map<string, DependencyInsight>();
 
-  // Add manifest dependencies first (these are authoritative)
   manifestDeps.forEach((dep) => combined.set(dep.name, dep));
-
-  // Add import dependencies, but don't overwrite manifest ones
   importDeps.forEach((dep) => {
     if (!combined.has(dep.name)) {
       combined.set(dep.name, dep);
     } else {
-      // If it exists in manifest, just update the usage count
       const existing = combined.get(dep.name)!;
       existing.count = Math.max(existing.count, dep.count);
     }
@@ -60,7 +198,7 @@ function analyzeDependencies(files: RepositoryFile[]): DependencyInsight[] {
 
   return Array.from(combined.values())
     .sort((a, b) => b.count - a.count)
-    .slice(0, 20); // Top 20 total
+    .slice(0, 20);
 }
 
 function parseManifestDependencies(
@@ -68,403 +206,192 @@ function parseManifestDependencies(
 ): DependencyInsight[] {
   const dependencies: DependencyInsight[] = [];
 
-  // Expanded manifest file detection for multiple ecosystems
-  const manifestFiles = files.filter((file) => {
-    const filename = file.path.split("/").pop() || "";
-    const lowercaseFilename = filename.toLowerCase();
-
-    return (
-      [
-        // Node.js ecosystem
-        "package.json",
-        "package-lock.json",
-        "yarn.lock",
-        "pnpm-lock.yaml",
-        // Python ecosystem
-        "requirements.txt",
-        "pyproject.toml",
-        "setup.py",
-        "pipfile",
-        "pipfile.lock",
-        // Java ecosystem
-        "pom.xml",
-        "build.gradle",
-        "build.gradle.kts",
-        "gradle.properties",
-        // .NET ecosystem
-        "packages.config",
-        "directory.build.props",
-        // Ruby ecosystem
-        "gemfile",
-        "gemfile.lock",
-        // Go ecosystem
-        "go.mod",
-        "go.sum",
-        // Rust ecosystem
-        "cargo.toml",
-        "cargo.lock",
-        // PHP ecosystem
-        "composer.json",
-        "composer.lock",
-        // Dart/Flutter
-        "pubspec.yaml",
-        "pubspec.lock",
-        // Swift
-        "package.swift",
-        // CMake
-        "cmakelists.txt",
-      ].includes(lowercaseFilename) ||
-      // .NET project files
-      filename.endsWith(".csproj") ||
-      filename.endsWith(".vbproj") ||
-      filename.endsWith(".fsproj") ||
-      // Requirements files with prefixes
-      (filename.includes("requirements") && filename.endsWith(".txt"))
-    );
-  });
-
-  for (const file of manifestFiles) {
-    const filename = file.path.split("/").pop() || "";
-    const lowercaseFilename = filename.toLowerCase();
+  for (const file of files) {
+    const filename = file.path.split("/").pop()?.toLowerCase() || "";
 
     try {
-      // Node.js ecosystem
-      if (filename === "package.json") {
-        const pkg = JSON.parse(file.content);
-
-        // Production dependencies (higher weight)
-        if (pkg.dependencies) {
-          Object.entries(pkg.dependencies).forEach(([name]) => {
-            dependencies.push({ name, count: 8 });
-          });
-        }
-
-        // Dev dependencies (medium weight)
-        if (pkg.devDependencies) {
-          Object.entries(pkg.devDependencies).forEach(([name]) => {
-            dependencies.push({ name, count: 5 });
-          });
-        }
-
-        // Peer dependencies (lower weight)
-        if (pkg.peerDependencies) {
-          Object.entries(pkg.peerDependencies).forEach(([name]) => {
-            dependencies.push({ name, count: 3 });
-          });
-        }
-
-        // Optional dependencies
-        if (pkg.optionalDependencies) {
-          Object.entries(pkg.optionalDependencies).forEach(([name]) => {
-            dependencies.push({ name, count: 2 });
-          });
-        }
-      }
-
-      // Python ecosystem
-      else if (
-        lowercaseFilename.includes("requirements") &&
-        filename.endsWith(".txt")
-      ) {
-        const lines = file.content.split("\n");
-        lines.forEach((line) => {
-          const cleaned = line.trim();
-          if (
-            cleaned &&
-            !cleaned.startsWith("#") &&
-            !cleaned.startsWith("-") &&
-            !cleaned.startsWith("git+")
-          ) {
-            // Extract package name (before ==, >=, etc.)
-            const match = cleaned.match(/^([a-zA-Z0-9_.-]+)/);
-            if (match && match[1]) {
-              dependencies.push({ name: match[1], count: 7 });
-            }
-          }
-        });
-      } else if (lowercaseFilename === "pyproject.toml") {
-        // Enhanced TOML parsing for Python dependencies
-        const lines = file.content.split("\n");
-        let inDependencies = false;
-        let inDevDependencies = false;
-
-        lines.forEach((line) => {
-          const cleaned = line.trim();
-
-          // Check for different dependency sections
-          if (
-            cleaned === "[tool.poetry.dependencies]" ||
-            cleaned === "[project.dependencies]" ||
-            cleaned === "[build-system.requires]"
-          ) {
-            inDependencies = true;
-            inDevDependencies = false;
-          } else if (
-            cleaned === "[tool.poetry.group.dev.dependencies]" ||
-            cleaned === "[tool.poetry.dev-dependencies]"
-          ) {
-            inDevDependencies = true;
-            inDependencies = false;
-          } else if (
-            cleaned.startsWith("[") &&
-            (inDependencies || inDevDependencies)
-          ) {
-            inDependencies = false;
-            inDevDependencies = false;
-          } else if (
-            (inDependencies || inDevDependencies) &&
-            cleaned.includes("=")
-          ) {
-            const match = cleaned.match(/^([a-zA-Z0-9_.-]+)\s*=/);
-            if (match && match[1] !== "python") {
-              const weight = inDevDependencies ? 4 : 7;
-              dependencies.push({
-                name: match[1],
-                count: weight,
-              });
-            }
-          }
-        });
-      } else if (lowercaseFilename === "pipfile") {
-        // Basic Pipfile parsing
-        try {
-          const lines = file.content.split("\n");
-          let inPackages = false;
-          let inDevPackages = false;
-
-          lines.forEach((line) => {
-            const cleaned = line.trim();
-            if (cleaned === "[packages]") {
-              inPackages = true;
-              inDevPackages = false;
-            } else if (cleaned === "[dev-packages]") {
-              inDevPackages = true;
-              inPackages = false;
-            } else if (
-              cleaned.startsWith("[") &&
-              (inPackages || inDevPackages)
-            ) {
-              inPackages = false;
-              inDevPackages = false;
-            } else if ((inPackages || inDevPackages) && cleaned.includes("=")) {
-              const match = cleaned.match(/^([a-zA-Z0-9_.-]+)\s*=/);
-              if (match) {
-                const weight = inDevPackages ? 4 : 7;
-                dependencies.push({
-                  name: match[1],
-                  count: weight,
-                });
-              }
-            }
-          });
-        } catch {
-          // Fallback to simple regex
-          const matches = file.content.matchAll(/^([a-zA-Z0-9_.-]+)\s*=/gm);
-          for (const match of matches) {
-            if (
-              match[1] &&
-              !["source", "url", "verify_ssl"].includes(match[1])
-            ) {
-              dependencies.push({ name: match[1], count: 6 });
-            }
-          }
-        }
-      }
-
-      // Java ecosystem
-      else if (filename === "pom.xml") {
-        // Extract dependencies from Maven POM
-        const dependencyMatches = file.content.matchAll(
-          /<groupId>([^<]+)<\/groupId>\s*<artifactId>([^<]+)<\/artifactId>/g
+      // Direct config match
+      if (filename in MANIFEST_CONFIGS) {
+        dependencies.push(
+          ...parseWithConfig(
+            file.content,
+            MANIFEST_CONFIGS[filename as keyof typeof MANIFEST_CONFIGS]
+          )
         );
-        for (const match of dependencyMatches) {
-          const [, groupId, artifactId] = match;
-          dependencies.push({
-            name: `${groupId}:${artifactId}`,
-            count: 6,
-          });
-        }
-      } else if (lowercaseFilename.includes("build.gradle")) {
-        // Extract dependencies from Gradle build files
-        const dependencyMatches = [
-          ...file.content.matchAll(
-            /(?:implementation|api|compile|testImplementation|androidTestImplementation)\s+['"]([^'"]+)['"]/g
-          ),
-          ...file.content.matchAll(
-            /(?:implementation|api|compile|testImplementation|androidTestImplementation)\s*\(\s*['"]([^'"]+)['"]/g
-          ),
-        ];
-
-        for (const match of dependencyMatches) {
-          const depString = match[1];
-          if (depString && depString.includes(":")) {
-            const parts = depString.split(":");
-            if (parts.length >= 2) {
-              dependencies.push({
-                name: `${parts[0]}:${parts[1]}`,
-                count: 6,
-              });
-            }
-          }
-        }
+        continue;
       }
 
-      // Go ecosystem
-      else if (lowercaseFilename === "go.mod") {
-        const lines = file.content.split("\n");
-        let inRequire = false;
-
-        lines.forEach((line) => {
-          const cleaned = line.trim();
-
-          if (cleaned === "require (") {
-            inRequire = true;
-          } else if (cleaned === ")" && inRequire) {
-            inRequire = false;
-          } else if (cleaned.startsWith("require ") && !cleaned.includes("(")) {
-            // Single line require
-            const match = cleaned.match(/require\s+([^\s]+)/);
-            if (match && match[1]) {
-              dependencies.push({ name: match[1], count: 6 });
-            }
-          } else if (inRequire && cleaned && !cleaned.startsWith("//")) {
-            // Multi-line require block
-            const match = cleaned.match(/^([^\s]+)/);
-            if (
-              match &&
-              match[1] &&
-              !match[1].includes("(") &&
-              !match[1].includes(")")
-            ) {
-              dependencies.push({ name: match[1], count: 6 });
-            }
-          }
-        });
+      // Pattern-based matches
+      if (REQUIREMENTS_PATTERNS.regex.test(filename)) {
+        dependencies.push(
+          ...parseWithConfig(file.content, REQUIREMENTS_PATTERNS.parser)
+        );
+        continue;
       }
 
-      // Rust ecosystem
-      else if (lowercaseFilename === "cargo.toml") {
-        const lines = file.content.split("\n");
-        let inDependencies = false;
-        let inDevDependencies = false;
-
-        lines.forEach((line) => {
-          const cleaned = line.trim();
-          if (cleaned === "[dependencies]") {
-            inDependencies = true;
-            inDevDependencies = false;
-          } else if (cleaned === "[dev-dependencies]") {
-            inDevDependencies = true;
-            inDependencies = false;
-          } else if (
-            cleaned.startsWith("[") &&
-            (inDependencies || inDevDependencies)
-          ) {
-            inDependencies = false;
-            inDevDependencies = false;
-          } else if (
-            (inDependencies || inDevDependencies) &&
-            cleaned.includes("=")
-          ) {
-            const match = cleaned.match(/^([a-zA-Z0-9_-]+)\s*=/);
-            if (match) {
-              const weight = inDevDependencies ? 4 : 7;
-              dependencies.push({
-                name: match[1],
-                count: weight,
-              });
-            }
-          }
-        });
+      if (GRADLE_PATTERNS.regex.test(filename)) {
+        dependencies.push(
+          ...parseWithConfig(file.content, GRADLE_PATTERNS.parser)
+        );
+        continue;
       }
 
-      // PHP ecosystem
-      else if (lowercaseFilename === "composer.json") {
-        const composer = JSON.parse(file.content);
-
-        if (composer.require) {
-          Object.keys(composer.require).forEach((name) => {
-            if (name !== "php") {
-              dependencies.push({ name, count: 7 });
-            }
-          });
-        }
-
-        if (composer["require-dev"]) {
-          Object.keys(composer["require-dev"]).forEach((name) => {
-            dependencies.push({ name, count: 4 });
-          });
-        }
-      }
-
-      // Ruby ecosystem
-      else if (lowercaseFilename === "gemfile") {
-        const lines = file.content.split("\n");
-        lines.forEach((line) => {
-          const cleaned = line.trim();
-          const match = cleaned.match(/gem\s+['"]([^'"]+)['"]/);
-          if (match && match[1]) {
-            dependencies.push({ name: match[1], count: 6 });
-          }
-        });
-      }
-
-      // Dart/Flutter ecosystem
-      else if (lowercaseFilename === "pubspec.yaml") {
-        const lines = file.content.split("\n");
-        let inDependencies = false;
-        let inDevDependencies = false;
-
-        lines.forEach((line) => {
-          const cleaned = line.trim();
-          if (cleaned === "dependencies:") {
-            inDependencies = true;
-            inDevDependencies = false;
-          } else if (cleaned === "dev_dependencies:") {
-            inDevDependencies = true;
-            inDependencies = false;
-          } else if (
-            cleaned &&
-            !cleaned.startsWith(" ") &&
-            cleaned.endsWith(":") &&
-            (inDependencies || inDevDependencies)
-          ) {
-            inDependencies = false;
-            inDevDependencies = false;
-          } else if (
-            (inDependencies || inDevDependencies) &&
-            cleaned.includes(":")
-          ) {
-            const match = cleaned.match(/^([a-zA-Z0-9_]+):/);
-            if (match && match[1] !== "flutter" && match[1] !== "sdk") {
-              const weight = inDevDependencies ? 4 : 7;
-              dependencies.push({
-                name: match[1],
-                count: weight,
-              });
-            }
-          }
-        });
-      }
-
-      // .NET ecosystem
-      else if (
-        filename.endsWith(".csproj") ||
-        filename.endsWith(".vbproj") ||
-        filename.endsWith(".fsproj")
-      ) {
-        const packageMatches = file.content.matchAll(
+      // Project files (.csproj, .vbproj, .fsproj)
+      if (/\.(cs|vb|fs)proj$/i.test(filename)) {
+        const matches = file.content.matchAll(
           /<PackageReference\s+Include="([^"]+)"/g
         );
-        for (const match of packageMatches) {
-          if (match[1]) {
-            dependencies.push({ name: match[1], count: 6 });
+        for (const match of matches) {
+          dependencies.push({ name: match[1], count: 6 });
+        }
+      }
+
+      // Gemfile
+      if (filename === "gemfile") {
+        const matches = file.content.matchAll(/gem\s+['"]([^'"]+)['"]/g);
+        for (const match of matches) {
+          dependencies.push({ name: match[1], count: 6 });
+        }
+      }
+
+      // Pipfile
+      if (filename === "pipfile") {
+        dependencies.push(...parsePipfile(file.content));
+      }
+    } catch (error) {
+      console.warn(`Failed to parse ${filename}:`, error);
+    }
+  }
+
+  return dependencies;
+}
+
+function parseWithConfig(content: string, config: any): DependencyInsight[] {
+  const dependencies: DependencyInsight[] = [];
+
+  switch (config.type) {
+    case "json":
+      const data = JSON.parse(content);
+      for (const section of config.sections) {
+        if (data[section.key]) {
+          Object.keys(data[section.key]).forEach((name) => {
+            if (!section.exclude?.includes(name)) {
+              dependencies.push({ name, count: section.weight });
+            }
+          });
+        }
+      }
+      break;
+
+    case "toml":
+    case "yaml":
+      dependencies.push(...parseStructuredFile(content, config));
+      break;
+
+    case "lines":
+      for (const pattern of config.patterns) {
+        const matches = content.matchAll(pattern.regex);
+        for (const match of matches) {
+          if (pattern.combine) {
+            dependencies.push({
+              name: `${match[1]}:${match[2]}`,
+              count: pattern.weight,
+            });
+          } else {
+            dependencies.push({ name: match[1], count: pattern.weight });
           }
         }
       }
-    } catch (error) {
-      // Ignore parsing errors for individual files
-      console.warn(`Failed to parse ${filename}:`, error);
+      break;
+
+    case "xml":
+      for (const pattern of config.patterns) {
+        const matches = content.matchAll(pattern.regex);
+        for (const match of matches) {
+          if (pattern.combine) {
+            dependencies.push({
+              name: `${match[1]}:${match[2]}`,
+              count: pattern.weight,
+            });
+          } else {
+            dependencies.push({ name: match[1], count: pattern.weight });
+          }
+        }
+      }
+      break;
+  }
+
+  return dependencies;
+}
+
+function parseStructuredFile(
+  content: string,
+  config: any
+): DependencyInsight[] {
+  const dependencies: DependencyInsight[] = [];
+  const lines = content.split("\n");
+  let currentSection = "";
+  let currentWeight = 0;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    // Check for section headers
+    const section = config.sections.find((s: any) => trimmed === s.pattern);
+    if (section) {
+      currentSection = section.pattern;
+      currentWeight = section.weight;
+      continue;
+    }
+
+    // Reset section if we hit another header
+    if (trimmed.startsWith("[") && currentSection) {
+      currentSection = "";
+      currentWeight = 0;
+      continue;
+    }
+
+    // Parse dependencies in current section
+    if (currentSection && trimmed.includes("=")) {
+      const match = trimmed.match(/^([a-zA-Z0-9_.-]+)\s*=/);
+      if (match && match[1]) {
+        const section = config.sections.find(
+          (s: any) => s.pattern === currentSection
+        );
+        if (!section?.exclude?.includes(match[1])) {
+          dependencies.push({ name: match[1], count: currentWeight });
+        }
+      }
+    }
+  }
+
+  return dependencies;
+}
+
+function parsePipfile(content: string): DependencyInsight[] {
+  const dependencies: DependencyInsight[] = [];
+  const lines = content.split("\n");
+  let inPackages = false;
+  let inDevPackages = false;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    if (trimmed === "[packages]") {
+      inPackages = true;
+      inDevPackages = false;
+    } else if (trimmed === "[dev-packages]") {
+      inDevPackages = true;
+      inPackages = false;
+    } else if (trimmed.startsWith("[") && (inPackages || inDevPackages)) {
+      inPackages = false;
+      inDevPackages = false;
+    } else if ((inPackages || inDevPackages) && trimmed.includes("=")) {
+      const match = trimmed.match(/^([a-zA-Z0-9_.-]+)\s*=/);
+      if (match) {
+        const weight = inDevPackages ? 4 : 7;
+        dependencies.push({ name: match[1], count: weight });
+      }
     }
   }
 
@@ -473,9 +400,7 @@ function parseManifestDependencies(
 
 function analyzeImportStatements(files: RepositoryFile[]): DependencyInsight[] {
   const externalDeps = new Map<string, number>();
-  const internalDeps = new Map<string, number>();
 
-  // Analyze multiple file types for imports
   const codeFiles = files.filter((file) =>
     /\.(js|jsx|ts|tsx|py|go|java|php|rb|rs|dart|swift|kt|scala|cs)$/.test(
       file.path
@@ -483,555 +408,154 @@ function analyzeImportStatements(files: RepositoryFile[]): DependencyInsight[] {
   );
 
   for (const file of codeFiles) {
-    const extension = file.path.split(".").pop()?.toLowerCase();
+    const ext = file.path.split(".").pop()?.toLowerCase();
+    const language = ext ? EXT_TO_LANG[ext] : null;
 
-    // Language-specific import pattern analysis
-    if (["js", "jsx", "ts", "tsx"].includes(extension || "")) {
-      analyzeJavaScriptImports(file, externalDeps, internalDeps);
-    } else if (extension === "py") {
-      analyzePythonImports(file, externalDeps, internalDeps);
-    } else if (extension === "go") {
-      analyzeGoImports(file, externalDeps, internalDeps);
-    } else if (extension === "java") {
-      analyzeJavaImports(file, externalDeps, internalDeps);
-    } else if (extension === "php") {
-      analyzePHPImports(file, externalDeps, internalDeps);
-    } else if (extension === "rb") {
-      analyzeRubyImports(file, externalDeps, internalDeps);
-    } else if (extension === "rs") {
-      analyzeRustImports(file, externalDeps, internalDeps);
-    } else if (extension === "dart") {
-      analyzeDartImports(file, externalDeps, internalDeps);
-    } else if (["cs"].includes(extension || "")) {
-      analyzeCSharpImports(file, externalDeps, internalDeps);
+    if (language && IMPORT_PATTERNS[language]) {
+      analyzeFileImports(
+        file,
+        IMPORT_PATTERNS[language],
+        language,
+        externalDeps
+      );
     }
   }
 
-  // Convert to array and sort by usage count (only external dependencies)
-  const external = Array.from(externalDeps.entries())
+  return Array.from(externalDeps.entries())
     .map(([name, count]) => ({ name, count }))
     .sort((a, b) => b.count - a.count)
-    .slice(0, 15); // Top 15
-
-  return external;
+    .slice(0, 15);
 }
 
-// JavaScript/TypeScript import analysis
-function analyzeJavaScriptImports(
-  file: { content: string; path: string },
-  externalDeps: Map<string, number>,
-  internalDeps: Map<string, number>
+function analyzeFileImports(
+  file: RepositoryFile,
+  patterns: readonly RegExp[],
+  language: keyof typeof STD_LIB_PATTERNS,
+  externalDeps: Map<string, number>
 ) {
-  // Enhanced patterns for JS/TS imports
-  const importPatterns = [
-    // ES6 imports
-    /import\s+(?:[\w*{}\s,]+\s+from\s+)?['"`]([^'"`]+)['"`]/g,
-    // CommonJS require
-    /require\s*\(\s*['"`]([^'"`]+)['"`]\s*\)/g,
-    // Dynamic imports
-    /import\s*\(\s*['"`]([^'"`]+)['"`]\s*\)/g,
-    // AMD require
-    /define\s*\(\s*\[.*?['"`]([^'"`]+)['"`]/g,
-  ];
-
-  for (const pattern of importPatterns) {
-    const matches = file.content.matchAll(pattern);
-    for (const match of matches) {
-      const importPath = match[1];
-      if (!importPath) continue;
-
-      processImportPath(importPath, externalDeps, internalDeps, "js");
-    }
-  }
-}
-
-// Python import analysis
-function analyzePythonImports(
-  file: { content: string; path: string },
-  externalDeps: Map<string, number>,
-  internalDeps: Map<string, number>
-) {
-  const patterns = [
-    // from package import module
-    /from\s+([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)*)\s+import/g,
-    // import package
-    /^import\s+([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)*)/gm,
-  ];
-
   for (const pattern of patterns) {
     const matches = file.content.matchAll(pattern);
+
     for (const match of matches) {
-      const importPath = match[1];
+      let importPath = match[1];
+
       if (!importPath) continue;
 
-      // Check if it's a relative import or standard library
-      if (importPath.startsWith(".")) {
-        internalDeps.set(importPath, (internalDeps.get(importPath) || 0) + 1);
-      } else if (!isPythonStandardLibrary(importPath)) {
-        const packageName = importPath.split(".")[0];
-        externalDeps.set(packageName, (externalDeps.get(packageName) || 0) + 1);
-      }
-    }
-  }
-}
-
-// Go import analysis
-function analyzeGoImports(
-  file: { content: string; path: string },
-  externalDeps: Map<string, number>,
-  internalDeps: Map<string, number>
-) {
-  // Single and multi-line import patterns
-  const patterns = [/import\s+"([^"]+)"/g, /import\s+\(\s*\n([\s\S]*?)\)/g];
-
-  for (const pattern of patterns) {
-    const matches = file.content.matchAll(pattern);
-    for (const match of matches) {
-      if (match[1].includes("\n")) {
-        // Multi-line imports
-        const lines = match[1].split("\n");
+      // Handle Go multi-line imports
+      if (language === "go" && importPath.includes("\n")) {
+        const lines = importPath.split("\n");
         for (const line of lines) {
           const trimmed = line.trim();
           const importMatch = trimmed.match(/"([^"]+)"/);
           if (importMatch) {
-            processGoImportPath(importMatch[1], externalDeps, internalDeps);
+            processImport(importMatch[1], language, externalDeps);
           }
         }
-      } else {
-        // Single import
-        processGoImportPath(match[1], externalDeps, internalDeps);
-      }
-    }
-  }
-}
-
-// Java import analysis
-function analyzeJavaImports(
-  file: { content: string; path: string },
-  externalDeps: Map<string, number>,
-  internalDeps: Map<string, number>
-) {
-  const pattern = /import\s+(?:static\s+)?([a-zA-Z_][a-zA-Z0-9_.]*);/g;
-  const matches = file.content.matchAll(pattern);
-
-  for (const match of matches) {
-    const importPath = match[1];
-    if (!importPath) continue;
-
-    const parts = importPath.split(".");
-    if (parts.length >= 2) {
-      // Check if it's a standard library or third-party
-      if (importPath.startsWith("java.") || importPath.startsWith("javax.")) {
-        // Skip standard library
         continue;
       }
 
-      // Use first two parts as package identifier
-      const packageName = parts.slice(0, 2).join(".");
-      if (isProjectInternal(packageName, file.path)) {
-        internalDeps.set(packageName, (internalDeps.get(packageName) || 0) + 1);
-      } else {
-        externalDeps.set(packageName, (externalDeps.get(packageName) || 0) + 1);
-      }
+      processImport(importPath, language, externalDeps);
     }
   }
 }
 
-// PHP import analysis
-function analyzePHPImports(
-  file: { content: string; path: string },
-  externalDeps: Map<string, number>,
-  internalDeps: Map<string, number>
-) {
-  const patterns = [
-    /use\s+([a-zA-Z_\\][a-zA-Z0-9_\\]*);/g,
-    /require(?:_once)?\s*\(\s*['"`]([^'"`]+)['"`]\s*\)/g,
-    /include(?:_once)?\s*\(\s*['"`]([^'"`]+)['"`]\s*\)/g,
-  ];
-
-  for (const pattern of patterns) {
-    const matches = file.content.matchAll(pattern);
-    for (const match of matches) {
-      const importPath = match[1];
-      if (!importPath) continue;
-
-      if (importPath.includes("\\")) {
-        // Namespace import
-        const parts = importPath.split("\\");
-        const packageName = parts[0];
-        externalDeps.set(packageName, (externalDeps.get(packageName) || 0) + 1);
-      } else if (importPath.startsWith("./") || importPath.startsWith("../")) {
-        // Relative path
-        internalDeps.set(importPath, (internalDeps.get(importPath) || 0) + 1);
-      }
-    }
-  }
-}
-
-// Ruby import analysis
-function analyzeRubyImports(
-  file: { content: string; path: string },
-  externalDeps: Map<string, number>,
-  internalDeps: Map<string, number>
-) {
-  const patterns = [
-    /require\s+['"`]([^'"`]+)['"`]/g,
-    /require_relative\s+['"`]([^'"`]+)['"`]/g,
-    /gem\s+['"`]([^'"`]+)['"`]/g,
-  ];
-
-  for (const pattern of patterns) {
-    const matches = file.content.matchAll(pattern);
-    for (const match of matches) {
-      const importPath = match[1];
-      if (!importPath) continue;
-
-      if (
-        pattern.source.includes("require_relative") ||
-        importPath.startsWith("./")
-      ) {
-        internalDeps.set(importPath, (internalDeps.get(importPath) || 0) + 1);
-      } else {
-        const packageName = importPath.split("/")[0];
-        externalDeps.set(packageName, (externalDeps.get(packageName) || 0) + 1);
-      }
-    }
-  }
-}
-
-// Rust import analysis
-function analyzeRustImports(
-  file: { content: string; path: string },
-  externalDeps: Map<string, number>,
-  internalDeps: Map<string, number>
-) {
-  const patterns = [
-    /use\s+([a-zA-Z_][a-zA-Z0-9_]*(?:::[a-zA-Z_][a-zA-Z0-9_]*)*)/g,
-    /extern\s+crate\s+([a-zA-Z_][a-zA-Z0-9_]*)/g,
-  ];
-
-  for (const pattern of patterns) {
-    const matches = file.content.matchAll(pattern);
-    for (const match of matches) {
-      const importPath = match[1];
-      if (!importPath) continue;
-
-      const rootCrate = importPath.split("::")[0];
-
-      if (
-        rootCrate === "std" ||
-        rootCrate === "core" ||
-        rootCrate === "alloc"
-      ) {
-        // Skip standard library
-        continue;
-      }
-
-      if (
-        rootCrate === "crate" ||
-        rootCrate === "super" ||
-        rootCrate === "self"
-      ) {
-        internalDeps.set(importPath, (internalDeps.get(importPath) || 0) + 1);
-      } else {
-        externalDeps.set(rootCrate, (externalDeps.get(rootCrate) || 0) + 1);
-      }
-    }
-  }
-}
-
-// Dart import analysis
-function analyzeDartImports(
-  file: { content: string; path: string },
-  externalDeps: Map<string, number>,
-  internalDeps: Map<string, number>
-) {
-  const patterns = [
-    /import\s+['"`]([^'"`]+)['"`]/g,
-    /export\s+['"`]([^'"`]+)['"`]/g,
-  ];
-
-  for (const pattern of patterns) {
-    const matches = file.content.matchAll(pattern);
-    for (const match of matches) {
-      const importPath = match[1];
-      if (!importPath) continue;
-
-      if (importPath.startsWith("package:")) {
-        const packageName = importPath.replace("package:", "").split("/")[0];
-        if (packageName !== "flutter") {
-          externalDeps.set(
-            packageName,
-            (externalDeps.get(packageName) || 0) + 1
-          );
-        }
-      } else if (importPath.startsWith("dart:")) {
-        // Skip Dart standard library
-        continue;
-      } else {
-        internalDeps.set(importPath, (internalDeps.get(importPath) || 0) + 1);
-      }
-    }
-  }
-}
-
-// C# import analysis
-function analyzeCSharpImports(
-  file: { content: string; path: string },
-  externalDeps: Map<string, number>,
-  internalDeps: Map<string, number>
-) {
-  const pattern = /using\s+([a-zA-Z_][a-zA-Z0-9_.]*);/g;
-  const matches = file.content.matchAll(pattern);
-
-  for (const match of matches) {
-    const importPath = match[1];
-    if (!importPath) continue;
-
-    const parts = importPath.split(".");
-    if (parts.length >= 1) {
-      const rootNamespace = parts[0];
-
-      // Skip system namespaces
-      if (rootNamespace === "System" || rootNamespace === "Microsoft") {
-        continue;
-      }
-
-      if (isProjectInternal(rootNamespace, file.path)) {
-        internalDeps.set(importPath, (internalDeps.get(importPath) || 0) + 1);
-      } else {
-        externalDeps.set(
-          rootNamespace,
-          (externalDeps.get(rootNamespace) || 0) + 1
-        );
-      }
-    }
-  }
-}
-
-// Helper functions
-function processImportPath(
+function processImport(
   importPath: string,
-  externalDeps: Map<string, number>,
-  internalDeps: Map<string, number>,
-  language: string
+  language: keyof typeof STD_LIB_PATTERNS,
+  externalDeps: Map<string, number>
 ) {
+  // Skip relative imports
   if (importPath.startsWith(".") || importPath.startsWith("/")) {
-    // Internal dependency
-    const cleanPath = importPath.replace(/\.(js|jsx|ts|tsx)$/, "");
-    internalDeps.set(cleanPath, (internalDeps.get(cleanPath) || 0) + 1);
-  } else if (
-    !importPath.includes("node:") &&
-    !importPath.includes("std/") &&
-    !isBuiltInModule(importPath, language)
-  ) {
-    // External dependency (not built-in modules)
-    const packageName = importPath.split("/")[0];
-    if (packageName.startsWith("@")) {
-      // Scoped package
-      const scopedName = importPath.split("/").slice(0, 2).join("/");
-      externalDeps.set(scopedName, (externalDeps.get(scopedName) || 0) + 1);
-    } else {
-      externalDeps.set(packageName, (externalDeps.get(packageName) || 0) + 1);
-    }
+    return;
   }
-}
 
-function processGoImportPath(
-  importPath: string,
-  externalDeps: Map<string, number>,
-  internalDeps: Map<string, number>
-) {
-  if (importPath.startsWith("./") || importPath.startsWith("../")) {
-    internalDeps.set(importPath, (internalDeps.get(importPath) || 0) + 1);
-  } else if (!isGoStandardLibrary(importPath)) {
-    // External dependency
-    const parts = importPath.split("/");
-    let packageName = importPath;
+  // Skip standard library
+  const stdPattern = STD_LIB_PATTERNS[language];
+  if (stdPattern && stdPattern.test(importPath)) {
+    return;
+  }
 
-    // Handle common hosting patterns
-    if (parts[0] === "github.com" || parts[0] === "gitlab.com") {
-      packageName = parts.slice(0, 3).join("/"); // github.com/user/repo
-    } else if (parts[0].includes(".")) {
-      packageName = parts[0]; // domain.com
-    }
+  // Extract package name
+  let packageName = importPath;
 
+  switch (language) {
+    case "js":
+      if (importPath.startsWith("@")) {
+        packageName = importPath.split("/").slice(0, 2).join("/");
+      } else {
+        packageName = importPath.split("/")[0];
+      }
+      break;
+
+    case "python":
+      packageName = importPath.split(".")[0];
+      break;
+
+    case "go":
+      if (importPath.includes("/")) {
+        const parts = importPath.split("/");
+        if (parts[0] === "github.com" || parts[0] === "gitlab.com") {
+          packageName = parts.slice(0, 3).join("/");
+        } else if (parts[0].includes(".")) {
+          packageName = parts[0];
+        }
+      }
+      break;
+
+    case "java":
+      packageName = importPath.split(".").slice(0, 2).join(".");
+      break;
+
+    case "rust":
+      packageName = importPath.split("::")[0];
+      break;
+
+    case "php":
+      packageName = importPath.split("\\")[0];
+      break;
+
+    case "dart":
+      if (importPath.startsWith("package:")) {
+        packageName = importPath.replace("package:", "").split("/")[0];
+      }
+      break;
+
+    case "csharp":
+      packageName = importPath.split(".")[0];
+      break;
+  }
+
+  if (packageName && packageName !== importPath.split(".")[0]) {
     externalDeps.set(packageName, (externalDeps.get(packageName) || 0) + 1);
   }
 }
 
-function isPythonStandardLibrary(module: string): boolean {
-  const stdLibModules = [
-    "os",
-    "sys",
-    "json",
-    "re",
-    "math",
-    "datetime",
-    "collections",
-    "itertools",
-    "functools",
-    "operator",
-    "copy",
-    "pickle",
-    "sqlite3",
-    "urllib",
-    "http",
-    "email",
-    "html",
-    "xml",
-    "csv",
-    "configparser",
-    "logging",
-    "unittest",
-    "threading",
-    "multiprocessing",
-    "subprocess",
-    "shutil",
-    "tempfile",
-    "pathlib",
-    "glob",
-    "fnmatch",
-    "random",
-    "hashlib",
-    "hmac",
-    "secrets",
-    "typing",
-    "dataclasses",
-    "enum",
-    "abc",
-    "contextlib",
-    "weakref",
-  ];
-
-  const rootModule = module.split(".")[0];
-  return stdLibModules.includes(rootModule);
-}
-
-function isGoStandardLibrary(importPath: string): boolean {
-  const stdLibPrefixes = [
-    "fmt",
-    "os",
-    "io",
-    "net",
-    "http",
-    "time",
-    "strings",
-    "strconv",
-    "sort",
-    "math",
-    "crypto",
-    "encoding",
-    "database",
-    "context",
-    "sync",
-    "regexp",
-    "path",
-    "log",
-    "flag",
-    "bufio",
-    "bytes",
-    "errors",
-    "reflect",
-    "runtime",
-    "testing",
-    "unsafe",
-    "archive",
-    "compress",
-    "container",
-    "debug",
-    "go",
-    "hash",
-    "image",
-    "index",
-    "mime",
-    "plugin",
-    "text",
-    "unicode",
-  ];
-
-  const rootPackage = importPath.split("/")[0];
-  return stdLibPrefixes.includes(rootPackage) || !importPath.includes(".");
-}
-
-function isBuiltInModule(importPath: string, language: string): boolean {
-  if (language === "js") {
-    const builtInModules = [
-      "fs",
-      "path",
-      "os",
-      "crypto",
-      "http",
-      "https",
-      "url",
-      "querystring",
-      "util",
-      "events",
-      "stream",
-      "buffer",
-      "child_process",
-      "cluster",
-      "dgram",
-      "dns",
-      "net",
-      "readline",
-      "repl",
-      "tls",
-      "tty",
-      "vm",
-      "zlib",
-    ];
-    return builtInModules.includes(importPath);
-  }
-  return false;
-}
-
-function isProjectInternal(packageName: string, filePath: string): boolean {
-  // Simple heuristic: if the package name appears to be related to the project structure
-  const pathParts = filePath.split("/");
-  return pathParts.some(
-    (part) =>
-      part.toLowerCase().includes(packageName.toLowerCase()) ||
-      packageName.toLowerCase().includes(part.toLowerCase())
-  );
-}
-
 function analyzeTestCoverage(files: RepositoryFile[]): TestCoverageInsight {
-  // Simplified test file detection - focus on common patterns
+  // Test file patterns
   const testFiles = files.filter((file) => {
     const path = file.path.toLowerCase();
     const fileName = path.split("/").pop() || "";
 
     return (
-      // Common test file patterns
       /\.(test|spec)\.(js|jsx|ts|tsx|py|go|java|rs|php|rb)$/.test(path) ||
-      // Directory patterns
       path.includes("__tests__") ||
       path.includes("/tests/") ||
       path.includes("/test/") ||
-      // Python specific patterns
       /^test.*\.py$/.test(fileName) ||
       fileName === "conftest.py" ||
-      // Other common patterns
       path.endsWith("_test.py") ||
       path.endsWith("_test.go") ||
       path.endsWith("_spec.rb")
     );
   });
 
-  // Identify source files (simplified)
+  // Source files
   const sourceFiles = files.filter((file) => {
     const path = file.path.toLowerCase();
-
-    // Include common source file extensions
     const isCode = /\.(js|jsx|ts|tsx|py|go|java|rs|php|rb|c|cpp|cs)$/.test(
       path
     );
-
-    // Exclude test files
     const isTest = testFiles.some((testFile) => testFile.path === file.path);
-
-    // Exclude common non-source directories and files
     const isExcluded =
       path.includes("node_modules") ||
       path.includes("dist/") ||
@@ -1044,36 +568,30 @@ function analyzeTestCoverage(files: RepositoryFile[]): TestCoverageInsight {
     return isCode && !isTest && !isExcluded;
   });
 
-  // Simple framework detection
   const testFramework = detectTestFramework(files);
-
-  // Basic coverage calculation (simplified - no complex mapping)
   const totalFiles = sourceFiles.length;
   const testFileCount = testFiles.length;
 
-  // Simple heuristic: assume reasonable test coverage if tests exist
   const estimatedCoverage =
     totalFiles > 0
       ? Math.min(Math.round((testFileCount / totalFiles) * 100), 100)
       : 0;
 
-  // Identify files without corresponding tests (simplified)
+  // Find untested files
   const untestedFiles = sourceFiles
     .filter((sourceFile) => {
-      // Simple check: look for a test file that might correspond to this source file
       const sourceName =
         sourceFile.path
           .split("/")
           .pop()
           ?.replace(/\.(js|jsx|ts|tsx|py|go|java|rs|php|rb)$/, "") || "";
-      return !testFiles.some((testFile) => {
-        const testName = testFile.path.toLowerCase();
-        return testName.includes(sourceName.toLowerCase());
-      });
+      return !testFiles.some((testFile) =>
+        testFile.path.toLowerCase().includes(sourceName.toLowerCase())
+      );
     })
     .map((file) => file.path)
     .sort()
-    .slice(0, 20); // Limit to first 20 for UI
+    .slice(0, 20);
 
   return {
     percentage: estimatedCoverage,
@@ -1083,9 +601,9 @@ function analyzeTestCoverage(files: RepositoryFile[]): TestCoverageInsight {
     testFiles: testFiles.map((f) => f.path),
     testFramework,
     untestedFiles,
-    testToSourceMapping: {}, // Simplified - remove complex mapping
+    testToSourceMapping: {},
     qualityMetrics: {
-      avgTestFileSize: 0, // Simplified - remove complex metrics
+      avgTestFileSize: 0,
       testToSourceRatio:
         testFileCount > 0 && totalFiles > 0
           ? Number((testFileCount / totalFiles).toFixed(2))
@@ -1095,37 +613,34 @@ function analyzeTestCoverage(files: RepositoryFile[]): TestCoverageInsight {
 }
 
 function detectTestFramework(files: RepositoryFile[]): string | undefined {
-  // Check package.json for common test frameworks
   const packageJsonFile = files.find((f) => f.path.endsWith("package.json"));
+
   if (packageJsonFile) {
     try {
       const pkg = JSON.parse(packageJsonFile.content);
-      const allDeps = {
-        ...pkg.dependencies,
-        ...pkg.devDependencies,
-      };
+      const allDeps = { ...pkg.dependencies, ...pkg.devDependencies };
 
-      // Check for most common frameworks
-      if (allDeps.vitest) return "Vitest";
-      if (allDeps.jest) return "Jest";
-      if (allDeps.mocha) return "Mocha";
-      if (allDeps.cypress) return "Cypress";
-      if (allDeps["@playwright/test"]) return "Playwright";
+      const frameworks = [
+        { key: "vitest", name: "Vitest" },
+        { key: "jest", name: "Jest" },
+        { key: "mocha", name: "Mocha" },
+        { key: "cypress", name: "Cypress" },
+        { key: "@playwright/test", name: "Playwright" },
+      ];
+
+      for (const framework of frameworks) {
+        if (allDeps[framework.key]) return framework.name;
+      }
     } catch {
       // Ignore JSON parsing errors
     }
   }
 
-  // Simple checks for other languages
+  // Language-specific detection
   if (files.some((f) => f.path.endsWith("conftest.py"))) return "pytest";
   if (files.some((f) => f.path.endsWith("_test.go"))) return "Go testing";
-
-  // Check if we have Python test files (assume pytest)
-  const hasTestFiles = files.some((f) => {
-    const fileName = f.path.split("/").pop() || "";
-    return /^test.*\.py$/.test(fileName);
-  });
-  if (hasTestFiles) return "pytest";
+  if (files.some((f) => /^test.*\.py$/.test(f.path.split("/").pop() || "")))
+    return "pytest";
 
   return undefined;
 }
