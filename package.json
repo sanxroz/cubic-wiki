@@ -12,6 +12,7 @@
     "@neondatabase/serverless": "^1.0.1",
     "@octokit/rest": "^22.0.0",
     "ai": "^4.3.16",
+    "mermaid": "^11.8.0",
     "next": "15.3.5",
     "openai": "^5.8.2",
     "react": "^19.0.0",
