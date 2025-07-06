@@ -31,7 +31,10 @@ export function generateTreeNodeKey(path: string, level: number): string {
  * @param maxAutoExpandLevel - Maximum level to auto-expand (default: 2)
  * @returns Whether the node should be auto-expanded
  */
-export function shouldAutoExpand(level: number, maxAutoExpandLevel: number = 2): boolean {
+export function shouldAutoExpand(
+  level: number,
+  maxAutoExpandLevel: number = 2
+): boolean {
   return level < maxAutoExpandLevel;
 }
 
@@ -60,7 +63,7 @@ export function getChildPrefix(currentPrefix: string, isLast: boolean): string {
  * @param wait - Wait time in milliseconds
  * @returns Debounced function
  */
-export function debounce<T extends (...args: any[]) => any>(
+export function debounce<T extends (...args: unknown[]) => unknown>(
   func: T,
   wait: number
 ): (...args: Parameters<T>) => void {
@@ -88,6 +91,6 @@ export function matchesSearch(text: string, query: string): boolean {
  * @returns File extension (without dot) or empty string
  */
 export function getFileExtension(filename: string): string {
-  const lastDot = filename.lastIndexOf('.');
-  return lastDot > 0 ? filename.slice(lastDot + 1).toLowerCase() : '';
+  const lastDot = filename.lastIndexOf(".");
+  return lastDot > 0 ? filename.slice(lastDot + 1).toLowerCase() : "";
 }
