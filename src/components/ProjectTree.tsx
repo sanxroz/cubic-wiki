@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { TreeNode as TreeNodeType } from "@/lib/tree-builder";
 import { useTreeExpansion } from "@/hooks/useTreeExpansion";
 import { TreeControls } from "./tree/TreeControls";
