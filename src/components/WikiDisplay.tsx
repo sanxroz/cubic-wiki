@@ -224,11 +224,179 @@ export default function WikiDisplay({ wikiData }: WikiDisplayProps) {
                     Architecture
                   </h2>
                 </div>
-                <div className="prose prose-gray max-w-none">
-                  <ReactMarkdown rehypePlugins={[rehypeSanitize]}>
-                    {wiki.architecture}
-                  </ReactMarkdown>
-                </div>
+                {typeof wiki.architecture === "string" ? (
+                  <div className="prose prose-gray max-w-none">
+                    <ReactMarkdown rehypePlugins={[rehypeSanitize]}>
+                      {wiki.architecture}
+                    </ReactMarkdown>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {/* Architecture Summary */}
+                    <div className="prose prose-gray max-w-none">
+                      <p className="text-gray-300 text-lg leading-relaxed">
+                        {wiki.architecture.summary}
+                      </p>
+                    </div>
+
+                    {/* Architecture Style */}
+                    <div className="flex items-center gap-3">
+                      <div className="w-6 h-6 bg-green-700 rounded-lg flex items-center justify-center">
+                        <svg
+                          className="w-3 h-3 text-green-300"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                          />
+                        </svg>
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium text-gray-400">
+                          Architecture Style
+                        </span>
+                        <div className="text-lg font-semibold text-gray-100">
+                          {wiki.architecture.style}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Design Patterns */}
+                      {wiki.architecture.patterns.length > 0 && (
+                        <div className="bg-gray-700 rounded-lg p-4 border border-gray-600">
+                          <h4 className="text-lg font-semibold text-gray-100 mb-3 flex items-center gap-2">
+                            <svg
+                              className="w-4 h-4 text-blue-400"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h2m0 0h10a2 2 0 002-2V7a2 2 0 00-2-2H9m0 12V9m0 0h10"
+                              />
+                            </svg>
+                            Design Patterns
+                          </h4>
+                          <div className="flex flex-wrap gap-2">
+                            {wiki.architecture.patterns.map(
+                              (pattern, index) => (
+                                <span
+                                  key={index}
+                                  className="px-3 py-1 bg-blue-900 text-blue-200 text-sm rounded-full border border-blue-700"
+                                >
+                                  {pattern}
+                                </span>
+                              )
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Technologies */}
+                      {wiki.architecture.technologies.length > 0 && (
+                        <div className="bg-gray-700 rounded-lg p-4 border border-gray-600">
+                          <h4 className="text-lg font-semibold text-gray-100 mb-3 flex items-center gap-2">
+                            <svg
+                              className="w-4 h-4 text-purple-400"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"
+                              />
+                            </svg>
+                            Technologies
+                          </h4>
+                          <div className="flex flex-wrap gap-2">
+                            {wiki.architecture.technologies.map(
+                              (tech, index) => (
+                                <span
+                                  key={index}
+                                  className="px-3 py-1 bg-purple-900 text-purple-200 text-sm rounded-full border border-purple-700"
+                                >
+                                  {tech}
+                                </span>
+                              )
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Data Flow */}
+                    <div className="bg-gray-700 rounded-lg p-4 border border-gray-600">
+                      <h4 className="text-lg font-semibold text-gray-100 mb-3 flex items-center gap-2">
+                        <svg
+                          className="w-4 h-4 text-yellow-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M13 10V3L4 14h7v7l9-11h-7z"
+                          />
+                        </svg>
+                        Data Flow
+                      </h4>
+                      <p className="text-gray-300 text-sm leading-relaxed">
+                        {wiki.architecture.dataFlow}
+                      </p>
+                    </div>
+
+                    {/* Key Decisions */}
+                    {wiki.architecture.keyDecisions.length > 0 && (
+                      <div className="bg-gray-700 rounded-lg p-4 border border-gray-600">
+                        <h4 className="text-lg font-semibold text-gray-100 mb-3 flex items-center gap-2">
+                          <svg
+                            className="w-4 h-4 text-orange-400"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                          </svg>
+                          Key Architectural Decisions
+                        </h4>
+                        <ul className="space-y-2">
+                          {wiki.architecture.keyDecisions.map(
+                            (decision, index) => (
+                              <li
+                                key={index}
+                                className="flex items-start gap-2"
+                              >
+                                <div className="w-1.5 h-1.5 bg-orange-400 rounded-full mt-2 flex-shrink-0"></div>
+                                <span className="text-gray-300 text-sm leading-relaxed">
+                                  {decision}
+                                </span>
+                              </li>
+                            )
+                          )}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
               </section>
 
               {/* Project Structure Section */}
@@ -358,8 +526,45 @@ function WikiSectionComponent({
             />
           </svg>
         </div>
-        <h2 className="text-2xl font-bold text-gray-100">{section.title}</h2>
+        <div className="flex-1">
+          <h2 className="text-2xl font-bold text-gray-100">{section.title}</h2>
+          {section.summary && (
+            <p className="text-gray-400 text-lg mt-1">{section.summary}</p>
+          )}
+        </div>
       </div>
+
+      {/* Key Takeaways */}
+      {section.keyTakeaways && section.keyTakeaways.length > 0 && (
+        <div className="bg-gray-700 rounded-lg p-4 mb-6 border border-gray-600">
+          <h3 className="text-lg font-semibold text-gray-100 mb-3 flex items-center gap-2">
+            <svg
+              className="w-4 h-4 text-green-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            Key Takeaways
+          </h3>
+          <ul className="space-y-2">
+            {section.keyTakeaways.map((takeaway, index) => (
+              <li key={index} className="flex items-start gap-2">
+                <div className="w-1.5 h-1.5 bg-green-400 rounded-full mt-2 flex-shrink-0"></div>
+                <span className="text-gray-300 text-sm leading-relaxed">
+                  {takeaway}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="prose prose-gray max-w-none mb-6">
         <ReactMarkdown rehypePlugins={[rehypeSanitize]}>
