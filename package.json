@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.0.1",
     "@octokit/rest": "^22.0.0",
     "ai": "^4.3.16",
     "next": "15.3.5",
