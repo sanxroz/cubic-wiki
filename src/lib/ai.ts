@@ -31,14 +31,25 @@ const CitationSchema = z.object({
 
 const WikiSectionSchema = z.object({
   title: z.string(),
+  summary: z.string(),
   content: z.string(),
+  keyTakeaways: z.array(z.string()),
   files: z.array(z.string()),
   citations: z.array(CitationSchema),
 });
 
+const ArchitectureSchema = z.object({
+  summary: z.string(),
+  style: z.string(),
+  patterns: z.array(z.string()),
+  technologies: z.array(z.string()),
+  dataFlow: z.string(),
+  keyDecisions: z.array(z.string()),
+});
+
 const AIResponseSchema = z.object({
   overview: z.string(),
-  architecture: z.string(),
+  architecture: ArchitectureSchema,
   sections: z.array(WikiSectionSchema),
 });
 
@@ -50,14 +61,34 @@ function zodToJsonSchema(schema: z.ZodSchema): Record<string, unknown> {
       type: "object",
       properties: {
         overview: { type: "string" },
-        architecture: { type: "string" },
+        architecture: {
+          type: "object",
+          properties: {
+            summary: { type: "string" },
+            style: { type: "string" },
+            patterns: { type: "array", items: { type: "string" } },
+            technologies: { type: "array", items: { type: "string" } },
+            dataFlow: { type: "string" },
+            keyDecisions: { type: "array", items: { type: "string" } },
+          },
+          required: [
+            "summary",
+            "style",
+            "patterns",
+            "technologies",
+            "dataFlow",
+            "keyDecisions",
+          ],
+        },
         sections: {
           type: "array",
           items: {
             type: "object",
             properties: {
               title: { type: "string" },
+              summary: { type: "string" },
               content: { type: "string" },
+              keyTakeaways: { type: "array", items: { type: "string" } },
               files: { type: "array", items: { type: "string" } },
               citations: {
                 type: "array",
@@ -72,7 +103,14 @@ function zodToJsonSchema(schema: z.ZodSchema): Record<string, unknown> {
                 },
               },
             },
-            required: ["title", "content", "files", "citations"],
+            required: [
+              "title",
+              "summary",
+              "content",
+              "keyTakeaways",
+              "files",
+              "citations",
+            ],
           },
         },
       },
@@ -167,27 +205,89 @@ function createAnalysisPrompt(
           .join("\n")}\n\n**Architecture**: ${subsystemAnalysis.architecture}\n`
       : "";
 
-  return `Analyze this ${
+  const dependencyCount = files.filter(
+    (f) =>
+      f.path.includes("package.json") ||
+      f.path.includes("requirements.txt") ||
+      f.path.includes("go.mod") ||
+      f.path.includes("Cargo.toml")
+  ).length;
+
+  const testFiles = files.filter(
+    (f) =>
+      f.path.includes("test") ||
+      f.path.includes("spec") ||
+      f.path.includes("__tests__")
+  ).length;
+
+  return `You are an expert technical documentation writer. Analyze this ${
     repository.language || "code"
-  } repository and provide comprehensive documentation.
+  } repository and create comprehensive, developer-friendly documentation.
 
 **Repository**: ${repository.full_name}
 **Description**: ${repository.description || "No description provided"}
+**Files Analyzed**: ${files.length} files
+**Test Files**: ${testFiles} files
+**Manifest Files**: ${dependencyCount} files
 ${subsystemContext}
 
 **Files:**
 ${fileListings}
 
-Create structured documentation with:
-1. **Overview**: What the repository does and its key features
-2. **Architecture**: Technical approach, patterns, and design decisions
-3. **Sections**: Organize into logical components/subsystems with:
-   - Clear titles for each major component
-   - Detailed explanations of functionality
-   - Relevant file paths for each section
-   - Citations with descriptions, file paths, and GitHub URLs
+Create detailed, structured documentation following this EXACT format:
 
-Focus on technical accuracy and clear explanations that help developers understand the codebase structure and functionality.`;
+## Overview
+Write a compelling 2-3 sentence executive summary explaining what this repository does and why it matters. Focus on the main purpose and value proposition.
+
+## Architecture  
+Provide structured architectural information with these specific fields:
+- **summary**: 2-3 sentence overview of the architectural approach
+- **style**: High-level architecture style (e.g., "Microservices", "Monolithic MVC", "JAMStack", "Serverless")
+- **patterns**: Array of key design patterns used (e.g., "MVC", "Repository Pattern", "Observer Pattern")
+- **technologies**: Array of core technologies and frameworks (e.g., "React", "Node.js", "PostgreSQL", "Redis")
+- **dataFlow**: Description of how data flows through the system
+- **keyDecisions**: Array of important architectural decisions and their reasoning
+
+## Sections
+For each major component/subsystem, create sections with this structure:
+
+### Section Format:
+- **title**: Clear, descriptive name (e.g., "Authentication System", "API Layer", "Frontend Components")
+- **summary**: One concise sentence describing what this component does
+- **content**: Detailed explanation including:
+  • Purpose and responsibilities
+  • How it works technically
+  • Key files and their roles
+  • Integration points with other components
+  • Any notable patterns or approaches
+- **keyTakeaways**: 3-5 bullet points with specific, actionable insights like:
+  • Technical implementation details
+  • Important configuration or setup notes
+  • Performance considerations
+  • Security features
+  • Developer workflow tips
+- **files**: List of relevant file paths for this component
+- **citations**: For each important file, include:
+  • text: Brief description of what this file does and why it's important
+  • file: The file path
+  • url: GitHub URL to the file
+
+## Requirements:
+1. **Be specific and technical** - include actual implementation details, not generic descriptions
+2. **Use bullet points liberally** - make content scannable and actionable
+3. **Explain WHY, not just WHAT** - include reasoning behind architectural decisions
+4. **Include practical details** - setup steps, configuration notes, common patterns
+5. **Make citations meaningful** - explain why each file matters to developers
+6. **Focus on developer experience** - what would help someone understand and work with this code
+
+## Examples of Good Content:
+❌ Bad: "This handles authentication"
+✅ Good: "JWT-based authentication system using HTTP-only cookies for security, with role-based access control and session management via Redis"
+
+❌ Bad: "Configuration file"  
+✅ Good: "Next.js configuration enabling TypeScript strict mode, custom webpack bundling for optimal performance, and API route middleware setup"
+
+Create documentation that helps developers quickly understand the codebase structure, make contributions, and avoid common pitfalls.`;
 }
 
 function createWikiData(
@@ -199,7 +299,9 @@ function createWikiData(
 ): WikiData {
   const sections: WikiSection[] = aiResponse.sections.map((section) => ({
     title: section.title,
+    summary: section.summary,
     content: section.content,
+    keyTakeaways: section.keyTakeaways,
     files: section.files,
     citations: section.citations.map((citation) => ({
       text: citation.text,
@@ -225,6 +327,7 @@ function createWikiData(
   };
 }
 
+// Fallback when AI fails
 function createFallbackWikiData(
   repository: GitHubRepository,
   files: RepositoryFile[],
@@ -236,9 +339,15 @@ function createFallbackWikiData(
     subsystemAnalysis.subsystems.length > 0
       ? subsystemAnalysis.subsystems.map((subsystem) => ({
           title: subsystem.name,
+          summary: `${subsystem.type} subsystem with ${subsystem.files.length} files`,
           content: `${subsystem.description} (Detected with ${(
             subsystem.confidence * 100
           ).toFixed(0)}% confidence)`,
+          keyTakeaways: [
+            `Contains ${subsystem.files.length} files`,
+            `Confidence level: ${(subsystem.confidence * 100).toFixed(0)}%`,
+            `Type: ${subsystem.type}`,
+          ],
           files: subsystem.files,
           citations: subsystem.files.slice(0, 3).map((file) => ({
             text: `${subsystem.type} file`,
@@ -249,7 +358,13 @@ function createFallbackWikiData(
       : [
           {
             title: "Source Files",
+            summary: `Repository contains ${files.length} source files`,
             content: "The following files were found in this repository.",
+            keyTakeaways: [
+              `Total files: ${files.length}`,
+              "Programmatically detected file structure",
+              "No specific subsystems identified",
+            ],
             files: files.map((f) => f.path),
             citations: files.slice(0, 5).map((file) => ({
               text: `${file.type} file`,
@@ -267,7 +382,17 @@ function createFallbackWikiData(
       overview: `This is a ${subsystemAnalysis.projectType}: ${
         repository.description || repository.name
       }`,
-      architecture: `${subsystemAnalysis.architecture}. AI analysis could not be completed, but programmatic analysis detected the architectural structure.`,
+      architecture: {
+        summary: `${subsystemAnalysis.architecture}. AI analysis could not be completed, but programmatic analysis detected the architectural structure.`,
+        style: subsystemAnalysis.architecture,
+        patterns: subsystemAnalysis.patterns.map((p) => p.pattern),
+        technologies: [repository.language || "Unknown"].filter(Boolean),
+        dataFlow: "Unable to determine data flow without AI analysis.",
+        keyDecisions: [
+          "Programmatically detected architecture based on file patterns",
+          "Limited analysis due to AI processing failure",
+        ],
+      },
       sections: fallbackSections,
     },
     projectTree,
