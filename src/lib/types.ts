@@ -57,7 +57,6 @@ export interface WikiData {
   insights?: {
     dependencies: Array<{
       name: string;
-      type: "internal" | "external";
       count: number;
     }>;
     testCoverage: {
