@@ -11,10 +11,24 @@ const CACHE_CONFIG = {
 };
 
 /**
+ * Gets the appropriate cache directory based on runtime environment
+ */
+function getCacheDirectory(): string {
+  // Check if we're running on Vercel (or any serverless environment)
+  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    // Use /tmp directory for serverless environments
+    return "/tmp/wikis";
+  }
+
+  // Use project directory for local development
+  return path.join(process.cwd(), CACHE_CONFIG.dataDir);
+}
+
+/**
  * Gets the cache file path for a given cache key
  */
 function getCacheFilePath(cacheKey: string): string {
-  const dataDir = path.join(process.cwd(), CACHE_CONFIG.dataDir);
+  const dataDir = getCacheDirectory();
   return path.join(dataDir, `${cacheKey}.json`);
 }
 
@@ -69,7 +83,7 @@ export async function cacheAnalysis(
   data: WikiData
 ): Promise<void> {
   try {
-    const dataDir = path.join(process.cwd(), CACHE_CONFIG.dataDir);
+    const dataDir = getCacheDirectory();
 
     // Ensure directory exists
     await fs.mkdir(dataDir, { recursive: true });
