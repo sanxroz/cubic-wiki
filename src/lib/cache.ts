@@ -141,3 +141,34 @@ export async function cacheAnalysis(
     // Don't throw error - caching failure shouldn't break the flow
   }
 }
+
+/**
+ * Get recent analyses from cache
+ * @returns Array of recent analysis data
+ */
+export async function getRecentAnalyses(): Promise<
+  { key: string; repo: string; createdAt: string }[]
+> {
+  try {
+    await initializeCacheTable();
+
+    const sql = getDatabase();
+
+    const result = await sql`
+      SELECT cache_key, data, created_at 
+      FROM cache 
+      WHERE expires_at > NOW()
+      ORDER BY created_at DESC 
+      LIMIT 3
+    `;
+
+    return result.map((row) => ({
+      key: row.cache_key,
+      repo: (row.data as WikiData).repository.name,
+      createdAt: new Date(row.created_at).toLocaleDateString(),
+    }));
+  } catch (error) {
+    console.error("Failed to get recent analyses:", error);
+    return [];
+  }
+}

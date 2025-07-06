@@ -1,4 +1,5 @@
 import GitHubInput from "@/components/GitHubInput";
+import RecentRepos from "@/components/RecentRepos";
 
 export default function Home() {
   return (
@@ -16,6 +17,9 @@ export default function Home() {
         <div className="bg-gray-800  p-8 border border-gray-600">
           <GitHubInput />
         </div>
+
+        {/* Recent Repos */}
+        <RecentRepos />
       </div>
     </div>
   );
