@@ -684,12 +684,12 @@ function CitationComponent({ citation }: CitationComponentProps) {
           </span>
         </a>
       </div>
-      <div className="flex-shrink-0">
+      <div className="flex-shrink-0 h-fit">
         <a
           href={citation.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="p-1 text-blue-400 hover:text-blue-300 transition-colors"
+          className="p-1 flex text-blue-400 hover:text-blue-300 transition-colors"
         >
           <svg
             className="w-4 h-4"
