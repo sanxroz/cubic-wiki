@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check cache if we already have cached analysis
-    const cacheKey = encodeURIComponent(githubUrl);
+    const cacheKey = `${owner}/${repo}`;
     const cachedData = await getCachedAnalysis(cacheKey);
 
     // if we have cached data, redirect to results
