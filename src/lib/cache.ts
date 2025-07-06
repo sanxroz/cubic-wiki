@@ -53,7 +53,7 @@ export async function getCachedAnalysis(
       await fs.unlink(filePath).catch(() => {}); // Ignore errors
       return null;
     }
-  } catch (error) {
+  } catch {
     // File doesn't exist or can't be read
     return null;
   }
