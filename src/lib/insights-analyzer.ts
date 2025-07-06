@@ -52,8 +52,8 @@ const MANIFEST_CONFIGS = {
   "go.mod": {
     type: "lines",
     patterns: [
-      { regex: /require\s+([^\s]+)/, weight: 6 },
-      { regex: /^\s*([^\s]+)\s+v/, weight: 6, multiline: true },
+      { regex: /require\s+([^\s]+)/gm, weight: 6 },
+      { regex: /^\s*([^\s]+)\s+v/gm, weight: 6, multiline: true },
     ],
   },
   "pyproject.toml": {
@@ -90,7 +90,7 @@ const REQUIREMENTS_PATTERNS = {
   regex: /requirements.*\.txt$/i,
   parser: {
     type: "lines",
-    patterns: [{ regex: /^([a-zA-Z0-9_.-]+)/, weight: 7 }],
+    patterns: [{ regex: /^([a-zA-Z0-9_.-]+)/gm, weight: 7 }],
   },
 };
 
