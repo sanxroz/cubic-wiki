@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import WikiDisplay from "@/components/WikiDisplay";
-import { WikiData } from "@/lib/types";
 import { getCachedAnalysis } from "@/lib/cache";
 
 interface PageProps {
@@ -52,7 +51,7 @@ export async function generateMetadata({ params }: PageProps) {
         type: "article",
       },
     };
-  } catch (error) {
+  } catch {
     return {
       title: "Cubic Wiki",
       description: "AI-powered repository wiki generator",
