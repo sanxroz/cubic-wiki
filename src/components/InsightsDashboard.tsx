@@ -10,6 +10,13 @@ interface InsightsDashboardProps {
       testedFiles: number;
       totalFiles: number;
       testFiles: string[];
+      testFramework?: string;
+      untestedFiles: string[];
+      testToSourceMapping: Record<string, string[]>;
+      qualityMetrics: {
+        avgTestFileSize: number;
+        testToSourceRatio: number;
+      };
     };
   };
 }
@@ -22,9 +29,6 @@ export default function InsightsDashboard({
   // Separate external and internal dependencies
   const externalDeps = dependencies.filter((dep) => dep.type === "external");
   const internalDeps = dependencies.filter((dep) => dep.type === "internal");
-
-  // Get max count for scaling bars
-  const maxCount = Math.max(...dependencies.map((dep) => dep.count), 1);
 
   return (
     <div className="space-y-6">
@@ -47,7 +51,12 @@ export default function InsightsDashboard({
             </svg>
           </div>
           <h3 className="text-xl font-bold text-gray-100">
-            Test Coverage Estimate
+            Test Coverage Analysis
+            {testCoverage.testFramework && (
+              <span className="text-sm font-normal text-gray-400 ml-2">
+                ({testCoverage.testFramework})
+              </span>
+            )}
           </h3>
         </div>
 
@@ -95,7 +104,11 @@ export default function InsightsDashboard({
                 </span>
               </div>
             </div>
-            <p className="text-sm text-gray-400">Estimated Coverage</p>
+            <p className="text-sm text-gray-400">
+              {Object.keys(testCoverage.testToSourceMapping).length > 0
+                ? "Actual Coverage"
+                : "Estimated Coverage"}
+            </p>
           </div>
 
           {/* File Stats */}
@@ -113,11 +126,23 @@ export default function InsightsDashboard({
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-400">Estimated Tested</span>
+              <span className="text-sm text-gray-400">
+                {Object.keys(testCoverage.testToSourceMapping).length > 0
+                  ? "Tested Files"
+                  : "Estimated Tested"}
+              </span>
               <span className="text-lg font-semibold text-green-400">
                 {testCoverage.testedFiles}
               </span>
             </div>
+            {testCoverage.qualityMetrics && (
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-400">Test/Source Ratio</span>
+                <span className="text-lg font-semibold text-yellow-400">
+                  {testCoverage.qualityMetrics?.testToSourceRatio}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Test Files List */}
@@ -146,10 +171,50 @@ export default function InsightsDashboard({
             </div>
           </div>
         </div>
+
+        {/* Untested Files Section */}
+        {testCoverage.untestedFiles &&
+          testCoverage.untestedFiles.length > 0 && (
+            <div className="mt-6 bg-red-900/20 border border-red-700 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <svg
+                  className="w-4 h-4 text-red-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <h4 className="font-semibold text-red-400">
+                  Coverage Gaps ({testCoverage.untestedFiles.length} files)
+                </h4>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-32 overflow-y-auto">
+                {testCoverage.untestedFiles.slice(0, 10).map((file, index) => (
+                  <div
+                    key={index}
+                    className="text-xs font-mono text-red-300 bg-red-900/30 px-2 py-1 rounded border border-red-800"
+                  >
+                    {file}
+                  </div>
+                ))}
+              </div>
+              {testCoverage.untestedFiles.length > 10 && (
+                <div className="text-xs text-red-400 mt-2 text-center">
+                  +{testCoverage.untestedFiles.length - 10} more untested files
+                </div>
+              )}
+            </div>
+          )}
       </div>
 
       {/* Dependencies */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="gap-6">
         {/* External Dependencies */}
         {externalDeps.length > 0 && (
           <div className="bg-gray-800 rounded-lg border border-gray-600 p-6">
@@ -173,27 +238,23 @@ export default function InsightsDashboard({
                 External Dependencies
               </h3>
             </div>
-            <div className="space-y-3">
-              {externalDeps.slice(0, 8).map((dep, index) => (
-                <div key={index} className="flex items-center gap-3">
-                  <div className="flex-1">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-sm font-mono text-gray-300">
-                        {dep.name}
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        {dep.count} imports
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-700 rounded-full h-2">
-                      <div
-                        className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${(dep.count / maxCount) * 100}%` }}
-                      />
-                    </div>
-                  </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {externalDeps.slice(0, 12).map((dep, index) => (
+                <div
+                  key={index}
+                  className="flex items-center gap-3 px-3 py-2 bg-gray-700 rounded-lg border border-gray-600"
+                >
+                  <div className="w-2 h-2 bg-blue-400 rounded-full flex-shrink-0"></div>
+                  <span className="text-sm font-mono text-gray-300 flex-1">
+                    {dep.name}
+                  </span>
                 </div>
               ))}
+              {externalDeps.length > 12 && (
+                <div className="text-xs text-gray-500 text-center pt-2">
+                  +{externalDeps.length - 12} more external dependencies
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -221,82 +282,26 @@ export default function InsightsDashboard({
                 Internal Modules
               </h3>
             </div>
-            <div className="space-y-3">
-              {internalDeps.slice(0, 8).map((dep, index) => (
-                <div key={index} className="flex items-center gap-3">
-                  <div className="flex-1">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-sm font-mono text-gray-300">
-                        {dep.name}
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        {dep.count} imports
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-700 rounded-full h-2">
-                      <div
-                        className="bg-purple-500 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${(dep.count / maxCount) * 100}%` }}
-                      />
-                    </div>
-                  </div>
+            <div className="space-y-2">
+              {internalDeps.slice(0, 12).map((dep, index) => (
+                <div
+                  key={index}
+                  className="flex items-center gap-3 px-3 py-2 bg-gray-700 rounded-lg border border-gray-600"
+                >
+                  <div className="w-2 h-2 bg-purple-400 rounded-full flex-shrink-0"></div>
+                  <span className="text-sm font-mono text-gray-300 flex-1">
+                    {dep.name}
+                  </span>
                 </div>
               ))}
+              {internalDeps.length > 12 && (
+                <div className="text-xs text-gray-500 text-center pt-2">
+                  +{internalDeps.length - 12} more internal modules
+                </div>
+              )}
             </div>
           </div>
         )}
-      </div>
-
-      {/* Summary Stats */}
-      <div className="bg-gray-800 rounded-lg border border-gray-600 p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-8 h-8 bg-orange-900 rounded-lg flex items-center justify-center">
-            <svg
-              className="w-4 h-4 text-orange-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-              />
-            </svg>
-          </div>
-          <h3 className="text-lg font-bold text-gray-100">Project Insights</h3>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-blue-400">
-              {externalDeps.length}
-            </div>
-            <div className="text-sm text-gray-400">External Deps</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-purple-400">
-              {internalDeps.length}
-            </div>
-            <div className="text-sm text-gray-400">Internal Modules</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-green-400">
-              {testCoverage.testFiles.length}
-            </div>
-            <div className="text-sm text-gray-400">Test Files</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-yellow-400">
-              {Math.round(
-                (internalDeps.length / Math.max(testCoverage.totalFiles, 1)) *
-                  100
-              )}
-              %
-            </div>
-            <div className="text-sm text-gray-400">Module Coupling</div>
-          </div>
-        </div>
       </div>
     </div>
   );
