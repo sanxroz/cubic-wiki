@@ -1,452 +1,261 @@
 import { RepositoryFile, GitHubRepository } from "./types";
 
+// Constants
+const CONFIDENCE_THRESHOLD = 0.4;
+const FILE_COUNT_NORMALIZER = 5;
+
+// Simplified interfaces - production ready
 export interface SubsystemInfo {
   name: string;
-  type:
-    | "frontend"
-    | "backend"
-    | "api"
-    | "auth"
-    | "data"
-    | "config"
-    | "cli"
-    | "feature";
+  type: "frontend" | "backend" | "data" | "config";
   files: string[];
   confidence: number;
   description: string;
 }
 
-export interface ArchitecturalPattern {
-  pattern: string;
-  description: string;
-  evidence: string[];
-}
-
 export interface SubsystemAnalysis {
   subsystems: SubsystemInfo[];
-  patterns: ArchitecturalPattern[];
   projectType: string;
-  architecture: string;
 }
 
+// Configuration-driven pattern matching
+interface PatternRule {
+  match: string[];
+  weight: number;
+}
+
+interface SubsystemConfig {
+  name: string;
+  type: SubsystemInfo["type"];
+  description: string;
+  patterns: PatternRule[];
+}
+
+// Core subsystem definitions - focused and minimal
+const SUBSYSTEM_CONFIGS: Record<string, SubsystemConfig> = {
+  frontend: {
+    name: "Frontend",
+    type: "frontend",
+    description: "User interface components and frontend logic",
+    patterns: [
+      {
+        match: [
+          "pages/",
+          "components/",
+          "src/components/",
+          "src/pages/",
+          "views/",
+          "src/views/",
+        ],
+        weight: 0.8,
+      },
+      { match: [".jsx", ".tsx", ".vue", ".svelte"], weight: 0.7 },
+      { match: ["public/", "static/", "assets/"], weight: 0.6 },
+      { match: ["styles/", "css/", "scss/"], weight: 0.5 },
+    ],
+  },
+  backend: {
+    name: "Backend",
+    type: "backend",
+    description: "Server-side logic and business rules",
+    patterns: [
+      { match: ["server/", "backend/", "api/"], weight: 0.8 },
+      { match: ["controllers/", "handlers/", "routes/"], weight: 0.7 },
+      { match: ["services/", "business/", "domain/"], weight: 0.6 },
+      { match: ["/api/", ".route.", ".endpoint.", ".api."], weight: 0.6 },
+    ],
+  },
+  data: {
+    name: "Data Layer",
+    type: "data",
+    description: "Database models, schemas, and data access logic",
+    patterns: [
+      { match: ["models/", "database/", "db/", "data/"], weight: 0.8 },
+      { match: ["repositories/", "dao/", "orm/"], weight: 0.7 },
+      { match: [".model.", ".schema.", ".migration."], weight: 0.6 },
+      { match: ["prisma/", "migrations/", "seeds/"], weight: 0.6 },
+    ],
+  },
+  config: {
+    name: "Configuration",
+    type: "config",
+    description: "Configuration files and deployment settings",
+    patterns: [
+      { match: ["config/", "configuration/"], weight: 0.7 },
+      { match: [".config.", ".env", ".json", ".yaml", ".yml"], weight: 0.5 },
+      { match: ["docker/", "k8s/", "kubernetes/", "deployment/"], weight: 0.6 },
+      { match: ["Dockerfile", "docker-compose"], weight: 0.6 },
+    ],
+  },
+};
+
+/**
+ * Main analysis function - simplified and production ready
+ */
 export function analyzeSubsystems(
   repository: GitHubRepository,
   files: RepositoryFile[]
 ): SubsystemAnalysis {
-  const filePaths = files.map((f) => f.path);
-
-  // Detect subsystems based on file patterns
-  const detectedSubsystems = [
-    ...detectFrontend(filePaths),
-    ...detectBackend(filePaths),
-    ...detectAPI(filePaths),
-    ...detectAuth(filePaths),
-    ...detectData(filePaths),
-    ...detectConfig(filePaths),
-    ...detectCLI(filePaths),
-    ...detectFeatures(filePaths),
-  ];
-
-  // Remove duplicates and low confidence subsystems
-  const uniqueSubsystems = detectedSubsystems
-    .filter((s) => s.confidence > 0.3)
-    .reduce((acc, current) => {
-      const existing = acc.find((s) => s.name === current.name);
-      if (!existing) {
-        acc.push(current);
-      } else if (current.confidence > existing.confidence) {
-        acc[acc.indexOf(existing)] = current;
-      }
-      return acc;
-    }, [] as SubsystemInfo[]);
-
-  // Detect architectural patterns
-  const detectedPatterns = [
-    ...detectMVCPattern(filePaths),
-    ...detectMicroservicesPattern(filePaths),
-    ...detectJAMStackPattern(filePaths),
-    ...detectMonolithPattern(filePaths),
-    ...detectContainerPattern(filePaths),
-  ];
-
-  // Determine project type and architecture
-  const projectType = determineProjectType(repository, filePaths);
-  const architecture = determineArchitecture(
-    uniqueSubsystems,
-    detectedPatterns
-  );
-
-  return {
-    subsystems: uniqueSubsystems,
-    patterns: detectedPatterns,
-    projectType,
-    architecture,
-  };
-}
-
-function detectFrontend(filePaths: string[]): SubsystemInfo[] {
-  const frontendPatterns = [
-    {
-      pattern:
-        /^(pages|components|views|src\/pages|src\/components|src\/views)\//,
-      weight: 0.8,
-    },
-    { pattern: /^(public|static|assets)\//, weight: 0.6 },
-    { pattern: /\.(jsx|tsx|vue|svelte)$/, weight: 0.7 },
-    { pattern: /^(styles|css|scss)\//, weight: 0.5 },
-  ];
-
-  const matches = findMatches(filePaths, frontendPatterns);
-
-  if (matches.files.length > 0) {
-    return [
-      {
-        name: "Frontend",
-        type: "frontend",
-        files: matches.files,
-        confidence: Math.min(matches.score, 1.0),
-        description: "User interface components and frontend logic",
-      },
-    ];
+  // Input validation
+  if (!repository) {
+    throw new Error("Repository data is required");
   }
-  return [];
-}
 
-function detectBackend(filePaths: string[]): SubsystemInfo[] {
-  const backendPatterns = [
-    { pattern: /^(server|backend|api)\//, weight: 0.8 },
-    { pattern: /^(controllers|handlers|routes)\//, weight: 0.7 },
-    { pattern: /^(services|business|domain)\//, weight: 0.6 },
-  ];
-
-  const matches = findMatches(filePaths, backendPatterns);
-
-  if (matches.files.length > 0) {
-    return [
-      {
-        name: "Backend",
-        type: "backend",
-        files: matches.files,
-        confidence: Math.min(matches.score, 1.0),
-        description: "Server-side logic and business rules",
-      },
-    ];
+  if (!files || !Array.isArray(files) || files.length === 0) {
+    return {
+      subsystems: [],
+      projectType: "Unknown Project",
+    };
   }
-  return [];
-}
 
-function detectAPI(filePaths: string[]): SubsystemInfo[] {
-  const apiPatterns = [
-    { pattern: /^(api|endpoints|routes)\//, weight: 0.8 },
-    { pattern: /\/api\//, weight: 0.7 },
-    { pattern: /\.(route|endpoint|api)\.(js|ts)$/, weight: 0.6 },
-  ];
+  try {
+    const filePaths = files.map((f) => f?.path).filter(Boolean);
 
-  const matches = findMatches(filePaths, apiPatterns);
+    if (filePaths.length === 0) {
+      return {
+        subsystems: [],
+        projectType: "Unknown Project",
+      };
+    }
 
-  if (matches.files.length > 0) {
-    return [
-      {
-        name: "API",
-        type: "api",
-        files: matches.files,
-        confidence: Math.min(matches.score, 1.0),
-        description: "REST API endpoints and HTTP handlers",
-      },
-    ];
+    // Single-pass analysis through all configurations
+    const detectedSubsystems = Object.values(SUBSYSTEM_CONFIGS)
+      .map((config) => detectSubsystem(filePaths, config))
+      .filter(
+        (subsystem): subsystem is SubsystemInfo =>
+          subsystem !== null && subsystem.confidence >= CONFIDENCE_THRESHOLD
+      );
+
+    // Remove duplicates, keeping highest confidence
+    const uniqueSubsystems = deduplicateSubsystems(detectedSubsystems);
+
+    return {
+      subsystems: uniqueSubsystems,
+      projectType: determineProjectType(repository, filePaths),
+    };
+  } catch (error) {
+    console.error("Error analyzing subsystems:", error);
+    return {
+      subsystems: [],
+      projectType: "Unknown Project",
+    };
   }
-  return [];
 }
 
-function detectAuth(filePaths: string[]): SubsystemInfo[] {
-  const authPatterns = [
-    { pattern: /^(auth|authentication|authorization)\//, weight: 0.9 },
-    { pattern: /\/(auth|login|register|jwt)\//, weight: 0.8 },
-    { pattern: /^(middleware|guards)\//, weight: 0.6 },
-    { pattern: /\.(auth|login|middleware)\.(js|ts)$/, weight: 0.7 },
-  ];
-
-  const matches = findMatches(filePaths, authPatterns);
-
-  if (matches.files.length > 0) {
-    return [
-      {
-        name: "Authentication",
-        type: "auth",
-        files: matches.files,
-        confidence: Math.min(matches.score, 1.0),
-        description: "User authentication and authorization system",
-      },
-    ];
-  }
-  return [];
-}
-
-function detectData(filePaths: string[]): SubsystemInfo[] {
-  const dataPatterns = [
-    { pattern: /^(models|database|db|data)\//, weight: 0.8 },
-    { pattern: /^(repositories|dao|orm)\//, weight: 0.7 },
-    { pattern: /\.(model|schema|migration)\.(js|ts)$/, weight: 0.6 },
-  ];
-
-  const matches = findMatches(filePaths, dataPatterns);
-
-  if (matches.files.length > 0) {
-    return [
-      {
-        name: "Data Layer",
-        type: "data",
-        files: matches.files,
-        confidence: Math.min(matches.score, 1.0),
-        description: "Database models, schemas, and data access logic",
-      },
-    ];
-  }
-  return [];
-}
-
-function detectConfig(filePaths: string[]): SubsystemInfo[] {
-  const configPatterns = [
-    { pattern: /^(config|configuration)\//, weight: 0.7 },
-    { pattern: /\.(config|env|json|yaml|yml)$/, weight: 0.5 },
-    { pattern: /^(docker|k8s|kubernetes|deployment)\//, weight: 0.6 },
-    { pattern: /^\.env/, weight: 0.6 },
-  ];
-
-  const matches = findMatches(filePaths, configPatterns);
-
-  if (matches.files.length > 0) {
-    return [
-      {
-        name: "Configuration",
-        type: "config",
-        files: matches.files,
-        confidence: Math.min(matches.score, 1.0),
-        description: "Configuration files and deployment settings",
-      },
-    ];
-  }
-  return [];
-}
-
-function detectCLI(filePaths: string[]): SubsystemInfo[] {
-  const cliPatterns = [
-    { pattern: /^(bin|cli|scripts|tools)\//, weight: 0.8 },
-    { pattern: /\.(cli|command|script)\.(js|ts)$/, weight: 0.7 },
-  ];
-
-  const matches = findMatches(filePaths, cliPatterns);
-
-  if (matches.files.length > 0) {
-    return [
-      {
-        name: "CLI Tools",
-        type: "cli",
-        files: matches.files,
-        confidence: Math.min(matches.score, 1.0),
-        description: "Command-line interface and utility scripts",
-      },
-    ];
-  }
-  return [];
-}
-
-function detectFeatures(filePaths: string[]): SubsystemInfo[] {
-  const featurePatterns = [
-    { pattern: /^(features|modules)\//, weight: 0.7 },
-    { pattern: /\/(user|product|order|payment|dashboard)\//, weight: 0.6 },
-  ];
-
-  const matches = findMatches(filePaths, featurePatterns);
-
-  if (matches.files.length > 0) {
-    return [
-      {
-        name: "Feature Modules",
-        type: "feature",
-        files: matches.files,
-        confidence: Math.min(matches.score, 1.0),
-        description: "Feature-based modules and business domains",
-      },
-    ];
-  }
-  return [];
-}
-
-function detectMVCPattern(filePaths: string[]): ArchitecturalPattern[] {
-  const hasModels = filePaths.some((p) => /\/(models|model)\//.test(p));
-  const hasViews = filePaths.some((p) => /\/(views|view)\//.test(p));
-  const hasControllers = filePaths.some((p) =>
-    /\/(controllers|controller)\//.test(p)
-  );
-
-  if (hasModels && hasViews && hasControllers) {
-    return [
-      {
-        pattern: "MVC (Model-View-Controller)",
-        description: "Classic MVC architectural pattern with separate concerns",
-        evidence: ["models/", "views/", "controllers/"],
-      },
-    ];
-  }
-  return [];
-}
-
-function detectMicroservicesPattern(
-  filePaths: string[]
-): ArchitecturalPattern[] {
-  const servicePatterns = filePaths.filter((p) =>
-    /\/(services|service)\//.test(p)
-  );
-  const hasDocker = filePaths.some((p) => /dockerfile|docker-compose/i.test(p));
-  const hasK8s = filePaths.some((p) => /k8s|kubernetes/i.test(p));
-
-  if (servicePatterns.length > 2 && (hasDocker || hasK8s)) {
-    return [
-      {
-        pattern: "Microservices",
-        description: "Distributed architecture with multiple services",
-        evidence: ["Multiple service directories", "Containerization setup"],
-      },
-    ];
-  }
-  return [];
-}
-
-function detectJAMStackPattern(filePaths: string[]): ArchitecturalPattern[] {
-  const hasStatic = filePaths.some((p) => /^(public|static|dist)\//.test(p));
-  const hasAPI = filePaths.some((p) => /\/api\//.test(p));
-  const hasJS = filePaths.some((p) => /\.(js|ts|jsx|tsx)$/.test(p));
-
-  if (hasStatic && hasAPI && hasJS) {
-    return [
-      {
-        pattern: "JAMStack",
-        description: "JavaScript, APIs, and Markup architecture",
-        evidence: ["Static assets", "API endpoints", "JavaScript/TypeScript"],
-      },
-    ];
-  }
-  return [];
-}
-
-function detectMonolithPattern(filePaths: string[]): ArchitecturalPattern[] {
-  const hasMultipleConcerns =
-    [
-      filePaths.some((p) => /\/(models|model)\//.test(p)),
-      filePaths.some((p) => /\/(views|view|components)\//.test(p)),
-      filePaths.some((p) => /\/(controllers|routes|api)\//.test(p)),
-      filePaths.some((p) => /\/(services|business)\//.test(p)),
-    ].filter(Boolean).length >= 3;
-
-  const noMicroservices = !filePaths.some((p) =>
-    /docker|k8s|kubernetes/i.test(p)
-  );
-
-  if (hasMultipleConcerns && noMicroservices) {
-    return [
-      {
-        pattern: "Monolithic",
-        description: "Single deployable unit with multiple concerns",
-        evidence: ["Unified codebase", "Multiple architectural layers"],
-      },
-    ];
-  }
-  return [];
-}
-
-function detectContainerPattern(filePaths: string[]): ArchitecturalPattern[] {
-  const hasDocker = filePaths.some((p) => /dockerfile|docker-compose/i.test(p));
-  const hasK8s = filePaths.some((p) => /k8s|kubernetes/i.test(p));
-
-  if (hasDocker || hasK8s) {
-    return [
-      {
-        pattern: "Containerized",
-        description: "Application designed for container deployment",
-        evidence: hasDocker
-          ? ["Dockerfile", "Docker Compose"]
-          : ["Kubernetes manifests"],
-      },
-    ];
-  }
-  return [];
-}
-
-function findMatches(
+/**
+ * Generic detection engine - eliminates code duplication
+ */
+function detectSubsystem(
   filePaths: string[],
-  patterns: { pattern: RegExp; weight: number }[]
-): { files: string[]; score: number } {
-  const matches = new Set<string>();
+  config: SubsystemConfig
+): SubsystemInfo | null {
+  const matchedFiles = new Set<string>();
   let totalScore = 0;
 
-  for (const { pattern, weight } of patterns) {
-    const matchingFiles = filePaths.filter((path) => pattern.test(path));
-    matchingFiles.forEach((file) => matches.add(file));
-    if (matchingFiles.length > 0) {
-      totalScore += weight * Math.min(matchingFiles.length / 5, 1); // Normalize by file count
+  for (const { match, weight } of config.patterns) {
+    const patternMatches = findPatternMatches(filePaths, match);
+
+    if (patternMatches.length > 0) {
+      patternMatches.forEach((file) => matchedFiles.add(file));
+      // Normalize score by file count to prevent bias toward projects with many files
+      const normalizedScore = Math.min(
+        patternMatches.length / FILE_COUNT_NORMALIZER,
+        1
+      );
+      totalScore += weight * normalizedScore;
     }
   }
 
+  if (matchedFiles.size === 0) {
+    return null;
+  }
+
   return {
-    files: Array.from(matches),
-    score: totalScore,
+    name: config.name,
+    type: config.type,
+    files: Array.from(matchedFiles),
+    confidence: Math.min(totalScore, 1.0),
+    description: config.description,
   };
 }
 
+/**
+ * Efficient pattern matching using string includes instead of regex
+ */
+function findPatternMatches(filePaths: string[], patterns: string[]): string[] {
+  return filePaths.filter((path) =>
+    patterns.some((pattern) => path.includes(pattern))
+  );
+}
+
+/**
+ * Remove duplicate subsystems, keeping the one with highest confidence
+ */
+function deduplicateSubsystems(subsystems: SubsystemInfo[]): SubsystemInfo[] {
+  const subsystemMap = new Map<string, SubsystemInfo>();
+
+  for (const subsystem of subsystems) {
+    const existing = subsystemMap.get(subsystem.type);
+    if (!existing || subsystem.confidence > existing.confidence) {
+      subsystemMap.set(subsystem.type, subsystem);
+    }
+  }
+
+  return Array.from(subsystemMap.values()).sort(
+    (a, b) => b.confidence - a.confidence
+  );
+}
+
+/**
+ * Simplified project type detection - focused on common cases
+ */
 function determineProjectType(
   repository: GitHubRepository,
   filePaths: string[]
 ): string {
   const language = repository.language?.toLowerCase() || "";
 
-  // Check for specific frameworks/platforms
-  if (filePaths.some((p) => p === "package.json")) {
-    if (filePaths.some((p) => p === "next.config.js" || p === "next.config.ts"))
-      return "Next.js Application";
-    if (
-      filePaths.some((p) => p.includes("pages/") || p.includes("components/"))
-    )
-      return "React Application";
-    if (filePaths.some((p) => p.includes("express") || p.includes("server")))
-      return "Node.js Server";
-    return "JavaScript/TypeScript Project";
+  try {
+    // JavaScript/TypeScript ecosystem
+    if (filePaths.includes("package.json")) {
+      if (filePaths.some((p) => p.includes("next.config"))) {
+        return "Next.js Application";
+      }
+      if (
+        filePaths.some((p) => p.includes("components/") || p.includes("pages/"))
+      ) {
+        return "React Application";
+      }
+      if (
+        filePaths.some((p) => p.includes("server") || p.includes("express"))
+      ) {
+        return "Node.js Server";
+      }
+      return "JavaScript/TypeScript Project";
+    }
+
+    // Other common project types
+    if (filePaths.some((p) => p === "requirements.txt" || p === "setup.py")) {
+      return "Python Project";
+    }
+    if (filePaths.includes("Cargo.toml")) {
+      return "Rust Project";
+    }
+    if (filePaths.includes("go.mod")) {
+      return "Go Project";
+    }
+    if (filePaths.some((p) => p === "pom.xml" || p.includes("build.gradle"))) {
+      return "Java Project";
+    }
+
+    // Fallback to language or generic
+    if (language) {
+      return `${language.charAt(0).toUpperCase() + language.slice(1)} Project`;
+    }
+
+    return "Software Project";
+  } catch (error) {
+    console.error("Error determining project type:", error);
+    return "Unknown Project";
   }
-
-  if (filePaths.some((p) => p === "requirements.txt" || p === "setup.py"))
-    return "Python Project";
-  if (filePaths.some((p) => p === "Cargo.toml")) return "Rust Project";
-  if (filePaths.some((p) => p === "go.mod")) return "Go Project";
-  if (filePaths.some((p) => p === "pom.xml" || p === "build.gradle"))
-    return "Java Project";
-
-  if (language)
-    return `${language.charAt(0).toUpperCase() + language.slice(1)} Project`;
-
-  return "Software Project";
-}
-
-function determineArchitecture(
-  subsystems: SubsystemInfo[],
-  patterns: ArchitecturalPattern[]
-): string {
-  if (patterns.find((p) => p.pattern === "Microservices"))
-    return "Microservices Architecture";
-  if (patterns.find((p) => p.pattern === "JAMStack"))
-    return "JAMStack Architecture";
-  if (patterns.find((p) => p.pattern === "MVC (Model-View-Controller)"))
-    return "MVC Architecture";
-  if (patterns.find((p) => p.pattern === "Monolithic"))
-    return "Monolithic Architecture";
-
-  const hasApi = subsystems.some((s) => s.type === "api");
-  const hasFrontend = subsystems.some((s) => s.type === "frontend");
-  const hasBackend = subsystems.some((s) => s.type === "backend");
-
-  if (hasApi && hasFrontend && hasBackend) return "Full-Stack Architecture";
-  if (hasFrontend && hasApi) return "Frontend with API";
-  if (hasBackend || hasApi) return "Backend Service";
-  if (hasFrontend) return "Frontend Application";
-
-  return "Custom Architecture";
 }
