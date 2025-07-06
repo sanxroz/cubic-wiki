@@ -2,7 +2,6 @@ import { RepositoryFile } from "./types";
 
 export interface DependencyInsight {
   name: string;
-  type: "internal" | "external";
   count: number;
 }
 
@@ -136,28 +135,28 @@ function parseManifestDependencies(
         // Production dependencies (higher weight)
         if (pkg.dependencies) {
           Object.entries(pkg.dependencies).forEach(([name]) => {
-            dependencies.push({ name, type: "external", count: 8 });
+            dependencies.push({ name, count: 8 });
           });
         }
 
         // Dev dependencies (medium weight)
         if (pkg.devDependencies) {
           Object.entries(pkg.devDependencies).forEach(([name]) => {
-            dependencies.push({ name, type: "external", count: 5 });
+            dependencies.push({ name, count: 5 });
           });
         }
 
         // Peer dependencies (lower weight)
         if (pkg.peerDependencies) {
           Object.entries(pkg.peerDependencies).forEach(([name]) => {
-            dependencies.push({ name, type: "external", count: 3 });
+            dependencies.push({ name, count: 3 });
           });
         }
 
         // Optional dependencies
         if (pkg.optionalDependencies) {
           Object.entries(pkg.optionalDependencies).forEach(([name]) => {
-            dependencies.push({ name, type: "external", count: 2 });
+            dependencies.push({ name, count: 2 });
           });
         }
       }
@@ -179,7 +178,7 @@ function parseManifestDependencies(
             // Extract package name (before ==, >=, etc.)
             const match = cleaned.match(/^([a-zA-Z0-9_.-]+)/);
             if (match && match[1]) {
-              dependencies.push({ name: match[1], type: "external", count: 7 });
+              dependencies.push({ name: match[1], count: 7 });
             }
           }
         });
@@ -221,7 +220,6 @@ function parseManifestDependencies(
               const weight = inDevDependencies ? 4 : 7;
               dependencies.push({
                 name: match[1],
-                type: "external",
                 count: weight,
               });
             }
@@ -254,7 +252,6 @@ function parseManifestDependencies(
                 const weight = inDevPackages ? 4 : 7;
                 dependencies.push({
                   name: match[1],
-                  type: "external",
                   count: weight,
                 });
               }
@@ -268,7 +265,7 @@ function parseManifestDependencies(
               match[1] &&
               !["source", "url", "verify_ssl"].includes(match[1])
             ) {
-              dependencies.push({ name: match[1], type: "external", count: 6 });
+              dependencies.push({ name: match[1], count: 6 });
             }
           }
         }
@@ -284,7 +281,6 @@ function parseManifestDependencies(
           const [, groupId, artifactId] = match;
           dependencies.push({
             name: `${groupId}:${artifactId}`,
-            type: "external",
             count: 6,
           });
         }
@@ -306,7 +302,6 @@ function parseManifestDependencies(
             if (parts.length >= 2) {
               dependencies.push({
                 name: `${parts[0]}:${parts[1]}`,
-                type: "external",
                 count: 6,
               });
             }
@@ -330,7 +325,7 @@ function parseManifestDependencies(
             // Single line require
             const match = cleaned.match(/require\s+([^\s]+)/);
             if (match && match[1]) {
-              dependencies.push({ name: match[1], type: "external", count: 6 });
+              dependencies.push({ name: match[1], count: 6 });
             }
           } else if (inRequire && cleaned && !cleaned.startsWith("//")) {
             // Multi-line require block
@@ -341,7 +336,7 @@ function parseManifestDependencies(
               !match[1].includes("(") &&
               !match[1].includes(")")
             ) {
-              dependencies.push({ name: match[1], type: "external", count: 6 });
+              dependencies.push({ name: match[1], count: 6 });
             }
           }
         });
@@ -376,7 +371,6 @@ function parseManifestDependencies(
               const weight = inDevDependencies ? 4 : 7;
               dependencies.push({
                 name: match[1],
-                type: "external",
                 count: weight,
               });
             }
@@ -391,14 +385,14 @@ function parseManifestDependencies(
         if (composer.require) {
           Object.keys(composer.require).forEach((name) => {
             if (name !== "php") {
-              dependencies.push({ name, type: "external", count: 7 });
+              dependencies.push({ name, count: 7 });
             }
           });
         }
 
         if (composer["require-dev"]) {
           Object.keys(composer["require-dev"]).forEach((name) => {
-            dependencies.push({ name, type: "external", count: 4 });
+            dependencies.push({ name, count: 4 });
           });
         }
       }
@@ -410,7 +404,7 @@ function parseManifestDependencies(
           const cleaned = line.trim();
           const match = cleaned.match(/gem\s+['"]([^'"]+)['"]/);
           if (match && match[1]) {
-            dependencies.push({ name: match[1], type: "external", count: 6 });
+            dependencies.push({ name: match[1], count: 6 });
           }
         });
       }
@@ -446,7 +440,6 @@ function parseManifestDependencies(
               const weight = inDevDependencies ? 4 : 7;
               dependencies.push({
                 name: match[1],
-                type: "external",
                 count: weight,
               });
             }
@@ -465,7 +458,7 @@ function parseManifestDependencies(
         );
         for (const match of packageMatches) {
           if (match[1]) {
-            dependencies.push({ name: match[1], type: "external", count: 6 });
+            dependencies.push({ name: match[1], count: 6 });
           }
         }
       }
@@ -514,18 +507,13 @@ function analyzeImportStatements(files: RepositoryFile[]): DependencyInsight[] {
     }
   }
 
-  // Convert to array and sort by usage count
+  // Convert to array and sort by usage count (only external dependencies)
   const external = Array.from(externalDeps.entries())
-    .map(([name, count]) => ({ name, type: "external" as const, count }))
+    .map(([name, count]) => ({ name, count }))
     .sort((a, b) => b.count - a.count)
     .slice(0, 15); // Top 15
 
-  const internal = Array.from(internalDeps.entries())
-    .map(([name, count]) => ({ name, type: "internal" as const, count }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 10); // Top 10
-
-  return [...external, ...internal];
+  return external;
 }
 
 // JavaScript/TypeScript import analysis
