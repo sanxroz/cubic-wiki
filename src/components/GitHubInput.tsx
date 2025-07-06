@@ -43,7 +43,7 @@ export default function GitHubInput({ onAnalysisStart }: GitHubInputProps) {
       } else {
         setError(data.error || "Analysis failed");
       }
-    } catch (err) {
+    } catch {
       setError("Network error. Please try again.");
     } finally {
       setIsLoading(false);
@@ -51,7 +51,9 @@ export default function GitHubInput({ onAnalysisStart }: GitHubInputProps) {
   };
 
   const isValidGitHubUrl = (url: string) => {
-    return /^https?:\/\/github\.com\/[^\/]+\/[^\/]+(?:\.git)?(?:\/.*)?(?:\?.*)?$/.test(url);
+    return /^https?:\/\/github\.com\/[^\/]+\/[^\/]+(?:\.git)?(?:\/.*)?(?:\?.*)?$/.test(
+      url
+    );
   };
 
   return (
