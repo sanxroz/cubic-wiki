@@ -43,6 +43,15 @@ export interface ArchitectureInfo {
   keyDecisions: string[];
 }
 
+export interface SequenceDiagram {
+  title: string;
+  description: string;
+  scenario: string;
+  mermaidSyntax: string;
+  relatedFiles: string[];
+  subsystems: string[];
+}
+
 export interface WikiData {
   githubUrl: string;
   generatedAt: string;
@@ -54,6 +63,7 @@ export interface WikiData {
   };
   projectTree?: ProjectTree;
   subsystemAnalysis?: SubsystemAnalysis;
+  sequenceDiagrams?: SequenceDiagram[];
   insights?: {
     dependencies: Array<{
       name: string;

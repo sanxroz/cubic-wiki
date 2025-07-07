@@ -5,10 +5,12 @@ import {
   GitHubRepository,
   WikiData,
   WikiSection,
+  SequenceDiagram,
 } from "./types";
 import { analyzeSubsystems, SubsystemAnalysis } from "./subsystem-analyzer";
 import { buildProjectTree, ProjectTree } from "./tree-builder";
 import { analyzeInsights, InsightsData } from "./insights-analyzer";
+import { analyzeSequenceFlows } from "./sequence-analyzer";
 
 if (!process.env.OPENAI_API_KEY) {
   throw new Error(
@@ -122,16 +124,23 @@ export async function processRepositoryWithAI(
   repository: GitHubRepository,
   files: RepositoryFile[]
 ): Promise<WikiData> {
-  // Step 1: Analyze subsystems programmatically
+  // Analyze subsystems programmatically
   const subsystemAnalysis = analyzeSubsystems(repository, files);
 
-  // Step 2: Build project tree with subsystem information
+  // Build project tree with subsystem information
   const projectTree = buildProjectTree(files, subsystemAnalysis.subsystems);
 
-  // Step 3: Generate insights
+  // Generate insights
   const insights = analyzeInsights(files);
 
-  // Step 4: Create clean, focused prompt
+  // Generate sequence diagrams
+  const sequenceDiagrams = await analyzeSequenceFlows(
+    repository,
+    files,
+    subsystemAnalysis
+  );
+
+  // Create prompt
   const prompt = createAnalysisPrompt(repository, files, subsystemAnalysis);
 
   try {
@@ -166,7 +175,8 @@ export async function processRepositoryWithAI(
       aiResponse,
       projectTree,
       subsystemAnalysis,
-      insights
+      insights,
+      sequenceDiagrams
     );
   } catch (error) {
     console.warn("AI processing failed, creating fallback structure:", error);
@@ -175,7 +185,8 @@ export async function processRepositoryWithAI(
       files,
       subsystemAnalysis,
       projectTree,
-      insights
+      insights,
+      sequenceDiagrams
     );
   }
 }
@@ -293,7 +304,8 @@ function createWikiData(
   aiResponse: z.infer<typeof AIResponseSchema>,
   projectTree: ProjectTree,
   subsystemAnalysis: SubsystemAnalysis,
-  insights: InsightsData
+  insights: InsightsData,
+  sequenceDiagrams: SequenceDiagram[]
 ): WikiData {
   const sections: WikiSection[] = aiResponse.sections.map((section) => ({
     title: section.title,
@@ -321,6 +333,7 @@ function createWikiData(
     },
     projectTree,
     subsystemAnalysis,
+    sequenceDiagrams,
     insights,
   };
 }
@@ -331,7 +344,8 @@ function createFallbackWikiData(
   files: RepositoryFile[],
   subsystemAnalysis: SubsystemAnalysis,
   projectTree: ProjectTree,
-  insights: InsightsData
+  insights: InsightsData,
+  sequenceDiagrams: SequenceDiagram[]
 ): WikiData {
   const fallbackSections: WikiSection[] =
     subsystemAnalysis.subsystems.length > 0
@@ -395,6 +409,7 @@ function createFallbackWikiData(
     },
     projectTree,
     subsystemAnalysis,
+    sequenceDiagrams,
     insights,
   };
 }
