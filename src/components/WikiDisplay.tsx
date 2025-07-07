@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { WikiData, WikiSection, CitationLink } from "@/lib/types";
 import ProjectTree from "./ProjectTree";
 import InsightsDashboard from "./InsightsDashboard";
+import SequenceDiagramDisplay from "./SequenceDiagramDisplay";
 
 interface WikiDisplayProps {
   wikiData: WikiData;
@@ -14,6 +15,8 @@ interface WikiDisplayProps {
 export default function WikiDisplay({ wikiData }: WikiDisplayProps) {
   const { repository, wiki } = wikiData;
   const pathname = usePathname();
+
+  const sequenceDiagrams = wikiData.sequenceDiagrams || [];
 
   return (
     <div className="min-h-screen bg-gray-900">
@@ -122,6 +125,17 @@ export default function WikiDisplay({ wikiData }: WikiDisplayProps) {
                       Architecture
                     </a>
                   </li>
+                  {sequenceDiagrams && sequenceDiagrams.length > 0 && (
+                    <li>
+                      <a
+                        href="#sequence-diagrams"
+                        className="flex items-center gap-2 text-gray-300 hover:text-blue-400 py-2 px-3  hover:bg-gray-700 transition-colors"
+                      >
+                        <div className="w-2 h-2 bg-yellow-400 -full"></div>
+                        Sequence Diagrams
+                      </a>
+                    </li>
+                  )}
                   {wikiData.projectTree && (
                     <li>
                       <a
@@ -398,6 +412,36 @@ export default function WikiDisplay({ wikiData }: WikiDisplayProps) {
                   </div>
                 )}
               </section>
+
+              {/* Sequence Diagrams Section */}
+              {sequenceDiagrams && sequenceDiagrams.length > 0 && (
+                <section
+                  id="sequence-diagrams"
+                  className="bg-gray-800  border border-gray-600 p-6"
+                >
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-8 h-8 bg-yellow-900  flex items-center justify-center">
+                      <svg
+                        className="w-4 h-4 text-yellow-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                        />
+                      </svg>
+                    </div>
+                    <h2 className="text-2xl font-bold text-gray-100">
+                      Sequence Diagrams
+                    </h2>
+                  </div>
+                  <SequenceDiagramDisplay diagrams={sequenceDiagrams} />
+                </section>
+              )}
 
               {/* Project Structure Section */}
               {wikiData.projectTree && (
