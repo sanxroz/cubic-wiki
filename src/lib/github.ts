@@ -43,16 +43,14 @@ export async function fetchRepositoryInfo(
 
 export async function fetchRepositoryContent(
   owner: string,
-  repo: string
+  repo: string,
+  repository: GitHubRepository
 ): Promise<RepositoryFile[]> {
   try {
-    // Get the repository tree
-    const repoInfo = await fetchRepositoryInfo(owner, repo);
-
     const treeResponse = await octokit.rest.git.getTree({
       owner,
       repo,
-      tree_sha: repoInfo.default_branch,
+      tree_sha: repository.default_branch,
       recursive: "true",
     });
 

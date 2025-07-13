@@ -7,6 +7,7 @@ import { WikiData, WikiSection, CitationLink } from "@/lib/types";
 import ProjectTree from "./ProjectTree";
 import InsightsDashboard from "./InsightsDashboard";
 import SequenceDiagramDisplay from "./SequenceDiagramDisplay";
+import ChatPanel from "./ChatPanel";
 
 interface WikiDisplayProps {
   wikiData: WikiData;
@@ -100,7 +101,7 @@ export default function WikiDisplay({ wikiData }: WikiDisplayProps) {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-6 gap-8">
           {/* Sidebar */}
           <div className="lg:col-span-1">
             <nav className="sticky top-8">
@@ -175,7 +176,7 @@ export default function WikiDisplay({ wikiData }: WikiDisplayProps) {
           </div>
 
           {/* Main Content */}
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-4">
             <div className="space-y-6">
               {/* Overview Section */}
               <section
@@ -517,6 +518,13 @@ export default function WikiDisplay({ wikiData }: WikiDisplayProps) {
                   sectionIndex={index}
                 />
               ))}
+            </div>
+          </div>
+
+          {/* Chat Panel */}
+          <div className="lg:col-span-1">
+            <div className="sticky top-8 h-[calc(100vh-8rem)]">
+              <ChatPanel wikiData={wikiData} />
             </div>
           </div>
         </div>

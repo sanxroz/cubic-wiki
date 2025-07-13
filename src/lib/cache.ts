@@ -66,7 +66,7 @@ export async function getCachedAnalysis(
   cacheKey: string
 ): Promise<WikiData | null> {
   try {
-    await initializeCacheTable();
+    // await initializeCacheTable();
 
     const sql = getDatabase();
 
@@ -78,7 +78,7 @@ export async function getCachedAnalysis(
     const result = await sql`
       SELECT data, created_at, expires_at 
       FROM cache 
-      WHERE cache_key = ${cacheKey} AND expires_at > NOW()
+      WHERE cache_key = ${cacheKey}
       LIMIT 1
     `;
 
@@ -157,7 +157,6 @@ export async function getRecentAnalyses(): Promise<
     const result = await sql`
       SELECT cache_key, data, created_at
       FROM cache
-      WHERE expires_at > NOW()
       ORDER BY created_at DESC
       LIMIT 3
     `;
