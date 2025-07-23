@@ -95,6 +95,33 @@ export interface AnalysisResponse {
   error?: string;
 }
 
+// Chat types
+export interface ChatMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  timestamp: Date;
+}
+
+export interface ChatRequest {
+  message: string;
+  messages: ChatMessage[];
+  repositoryContext: {
+    repository: GitHubRepository;
+    wiki: {
+      overview: string;
+      architecture: string | ArchitectureInfo;
+      sections: WikiSection[];
+    };
+  };
+}
+
+export interface ChatResponse {
+  success: boolean;
+  message?: string;
+  error?: string;
+}
+
 export type { SubsystemInfo, SubsystemAnalysis } from "./subsystem-analyzer";
 
 // Re-export tree builder types

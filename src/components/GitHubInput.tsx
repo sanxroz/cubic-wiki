@@ -3,10 +3,6 @@
 import { useState, useEffect } from "react";
 import { AnalysisResponse } from "@/lib/types";
 
-interface GitHubInputProps {
-  onAnalysisStart?: () => void;
-}
-
 interface LoadingStep {
   step: string;
   description: string;
@@ -36,7 +32,7 @@ const LOADING_STEPS: LoadingStep[] = [
   },
 ];
 
-export default function GitHubInput({ onAnalysisStart }: GitHubInputProps) {
+export default function GitHubInput() {
   const [url, setUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -118,10 +114,6 @@ export default function GitHubInput({ onAnalysisStart }: GitHubInputProps) {
     setError("");
     setValidationError("");
     resetLoadingState();
-
-    if (onAnalysisStart) {
-      onAnalysisStart();
-    }
 
     try {
       const response = await fetch("/api/analyze", {

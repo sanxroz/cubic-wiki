@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     const repository = await fetchRepositoryInfo(owner, repo);
 
     // Fetch repository content
-    const files = await fetchRepositoryContent(owner, repo);
+    const files = await fetchRepositoryContent(owner, repo, repository);
 
     // If no files, return error
     if (files.length === 0) {
